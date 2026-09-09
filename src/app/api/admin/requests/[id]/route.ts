@@ -1,0 +1,5 @@
+import { NextResponse } from "next/server";
+import { RequestStatus } from "@prisma/client";
+import { updateAdminRequestStatus } from "../../../../../server/admin/repository";
+
+export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) { try { const { id } = await params; const body = await request.json() as { status?: unknown }; if (typeof body.status !== "string" || !Object.values(RequestStatus).includes(body.status as RequestStatus)) return NextResponse.json({ error: "Geçersiz talep durumu." }, { status: 400 }); const result = await updateAdminRequestStatus(id, body.status as RequestStatus); return NextResponse.json({ request: { ...result, updatedAt: result.updatedAt.toISOString() } }); } catch (error) { if (typeof error === "object" && error && "code" in error && error.code === "P2025") return NextResponse.json({ error: "Talep bulunamadı." }, { status: 404 }); console.error("Admin request update failed", error); return NextResponse.json({ error: "Talep durumu güncellenemedi." }, { status: 500 }); } }

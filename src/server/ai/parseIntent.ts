@@ -1,0 +1,1 @@
+export { parseSearchIntent } from "./parser";

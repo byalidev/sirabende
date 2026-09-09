@@ -1,0 +1,338 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleName {
+  USER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum RequestStatus {
+  ACTIVE
+  CLOSED
+  COMPLETED
+  EXPIRED
+  CANCELLED
+}
+
+enum RequestCondition {
+  NEW
+  USED
+  REFURBISHED
+  UNKNOWN
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
+  EXPIRED
+}
+
+enum NotificationType {
+  NEW_OFFER
+  OFFER_ACCEPTED
+  NEW_MESSAGE
+  REQUEST_EXPIRED
+  REQUEST_STATUS_CHANGED
+  SYSTEM
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  REJECTED
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  firstName    String?
+  lastName     String?
+  phone        String?
+  avatar       String?
+  bio          String?
+  city         String?
+  district     String?
+  isActive     Boolean  @default(true)
+  isVerified   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userRoles           UserRole[]
+  requests            Request[]
+  offers              Offer[]
+  notifications       Notification[]
+  favoriteRequests    FavoriteRequest[]
+  sentMessages        Message[]         @relation("MessageSender")
+  conversationsBuyer  Conversation[]    @relation("ConversationBuyer")
+  conversationsSeller Conversation[]    @relation("ConversationSeller")
+  reviewsWritten      Review[]          @relation("ReviewWritten")
+  reviewsReceived     Review[]          @relation("ReviewReceived")
+  reportsFiled        Report[]          @relation("ReportFiled")
+  reportsReceived     Report[]          @relation("ReportReceived")
+  blocksInitiated     UserBlock[]       @relation("BlockInitiator")
+  blocksReceived      UserBlock[]       @relation("BlockTarget")
+  sessions            Session[]
+
+  @@index([email])
+  @@index([username])
+  @@index([city, district])
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @unique
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Role {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  userRoles UserRole[]
+}
+
+model UserRole {
+  userId     String   @db.Uuid
+  roleId     String   @db.Uuid
+  assignedAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@index([userId])
+  @@index([roleId])
+}
+
+model Category {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  parentId    String?  @db.Uuid
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  parent   Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children Category[] @relation("CategoryHierarchy")
+  products Product[]
+  requests Request[]
+
+  @@index([parentId, isActive])
+  @@index([slug])
+}
+
+model Product {
+  id          String   @id @default(uuid()) @db.Uuid
+  categoryId  String   @db.Uuid
+  name        String
+  slug        String   @unique
+  description String?
+  brand       String?
+  model       String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category Category  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  requests Request[]
+
+  @@index([categoryId, isActive])
+  @@index([brand, model])
+}
+
+model Request {
+  id          String           @id @default(uuid()) @db.Uuid
+  userId      String           @db.Uuid
+  productId   String?          @db.Uuid
+  categoryId  String?          @db.Uuid
+  title       String
+  description String?
+  minBudget   Decimal?         @db.Decimal(12, 2)
+  maxBudget   Decimal?         @db.Decimal(12, 2)
+  currency    String           @default("TRY")
+  condition   RequestCondition @default(UNKNOWN)
+  city        String
+  district    String?
+  status      RequestStatus    @default(ACTIVE)
+  expiresAt   DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product       Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
+  category      Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  offers        Offer[]
+  favorites     FavoriteRequest[]
+  conversations Conversation[]
+  reports       Report[]          @relation("RequestReport")
+  reviews       Review[]
+
+  @@index([status, categoryId, productId, city, createdAt])
+  @@index([userId, status, createdAt])
+  @@index([expiresAt])
+}
+
+model Offer {
+  id           String           @id @default(uuid()) @db.Uuid
+  requestId    String           @db.Uuid
+  sellerId     String           @db.Uuid
+  price        Decimal          @db.Decimal(12, 2)
+  currency     String           @default("TRY")
+  condition    RequestCondition @default(UNKNOWN)
+  description  String?
+  deliveryInfo String?
+  status       OfferStatus      @default(PENDING)
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  request       Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  seller        User           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  conversations Conversation[]
+  reports       Report[]       @relation("OfferReport")
+  reviews       Review[]
+
+  @@index([requestId, sellerId, status])
+  @@index([sellerId, status, createdAt])
+}
+
+model Conversation {
+  id        String   @id @default(uuid()) @db.Uuid
+  buyerId   String   @db.Uuid
+  sellerId  String   @db.Uuid
+  requestId String?  @db.Uuid
+  offerId   String?  @db.Uuid
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  buyer    User      @relation("ConversationBuyer", fields: [buyerId], references: [id], onDelete: Cascade)
+  seller   User      @relation("ConversationSeller", fields: [sellerId], references: [id], onDelete: Cascade)
+  request  Request?  @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  offer    Offer?    @relation(fields: [offerId], references: [id], onDelete: SetNull)
+  messages Message[]
+
+  @@index([buyerId, sellerId, createdAt])
+  @@index([requestId, offerId])
+}
+
+model Message {
+  id             String    @id @default(uuid()) @db.Uuid
+  conversationId String    @db.Uuid
+  senderId       String    @db.Uuid
+  content        String
+  imageUrl       String?
+  readAt         DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
+  reports      Report[]     @relation("MessageReport")
+
+  @@index([conversationId, createdAt])
+  @@index([senderId, createdAt])
+}
+
+model Notification {
+  id        String           @id @default(uuid()) @db.Uuid
+  userId    String           @db.Uuid
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead, createdAt])
+}
+
+model Review {
+  id             String   @id @default(uuid()) @db.Uuid
+  reviewerId     String   @db.Uuid
+  reviewedUserId String   @db.Uuid
+  requestId      String?  @db.Uuid
+  offerId        String?  @db.Uuid
+  rating         Int
+  comment        String?
+  createdAt      DateTime @default(now())
+
+  reviewer     User     @relation("ReviewWritten", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewedUser User     @relation("ReviewReceived", fields: [reviewedUserId], references: [id], onDelete: Cascade)
+  request      Request? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  offer        Offer?   @relation(fields: [offerId], references: [id], onDelete: SetNull)
+
+  @@unique([reviewerId, reviewedUserId, requestId])
+  @@index([reviewedUserId, createdAt])
+  @@index([requestId, offerId])
+}
+
+model Report {
+  id             String       @id @default(uuid()) @db.Uuid
+  reporterId     String       @db.Uuid
+  reportedUserId String?      @db.Uuid
+  requestId      String?      @db.Uuid
+  offerId        String?      @db.Uuid
+  messageId      String?      @db.Uuid
+  reason         String
+  description    String?
+  status         ReportStatus @default(PENDING)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  reporter     User     @relation("ReportFiled", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedUser User?    @relation("ReportReceived", fields: [reportedUserId], references: [id], onDelete: SetNull)
+  request      Request? @relation("RequestReport", fields: [requestId], references: [id], onDelete: SetNull)
+  offer        Offer?   @relation("OfferReport", fields: [offerId], references: [id], onDelete: SetNull)
+  message      Message? @relation("MessageReport", fields: [messageId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([reporterId, createdAt])
+}
+
+model FavoriteRequest {
+  userId    String   @db.Uuid
+  requestId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@id([userId, requestId])
+  @@index([userId, createdAt])
+}
+
+model UserBlock {
+  blockerId String   @db.Uuid
+  blockedId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  blocker User @relation("BlockInitiator", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockTarget", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId, createdAt])
+}
