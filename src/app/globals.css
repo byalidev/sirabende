@@ -17,29 +17,81 @@
 @media (max-width: 560px) { .auth-card { padding: 28px 20px; } .auth-form-grid { grid-template-columns: 1fr; } .auth-form-full { grid-column: auto; } .auth-brand { margin-bottom: 32px; } }
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
-  --ink: #0f172a;
-  --muted: #64748b;
-  --line: #e2e8f0;
-  --surface: #ffffff;
-  --surface-soft: #eff6ff;
+  /* --- Core palette --- */
   --color-primary: #2563eb;
   --color-primary-dark: #1d4ed8;
+  --color-primary-soft: #eff6ff;
   --color-background: #f8fafc;
   --color-surface: #ffffff;
   --color-text: #0f172a;
   --color-muted: #64748b;
+  --color-placeholder: #94a3b8;
   --color-border: #e2e8f0;
   --color-success: #16a34a;
+  --color-success-soft: #ecfdf3;
   --color-warning: #f59e0b;
+  --color-warning-soft: #fffbeb;
   --color-error: #dc2626;
+  --color-error-soft: #fef2f2;
+
+  /* --- Semantic aliases (shared across components) --- */
+  --background: var(--color-background);
+  --foreground: var(--color-text);
+  --ink: var(--color-text);
+  --muted: var(--color-muted);
+  --line: var(--color-border);
+  --surface: var(--color-surface);
+  --surface-soft: var(--color-primary-soft);
+
+  /* --- Legacy aliases: remapped onto the blue system (no green left) --- */
   --forest: var(--color-primary);
   --forest-deep: var(--color-primary-dark);
-  --lime: var(--surface-soft);
-  --coral: var(--color-success);
-  --shadow-soft: 0 16px 50px rgba(37, 99, 235, 0.08);
+  --lime: var(--color-primary-soft);
+  --coral: var(--color-primary);
+
+  /* --- Radius scale --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-pill: 999px;
+  --radius: var(--radius-md);
+
+  /* --- Shadow scale (clean + premium, no glow) --- */
+  --shadow-none: none;
+  --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.05);
   --shadow-card: 0 10px 30px rgba(15, 23, 42, 0.06);
+  --shadow-elevated: 0 20px 48px rgba(15, 23, 42, 0.1);
+  --shadow-soft: 0 16px 50px rgba(37, 99, 235, 0.08);
+
+  /* --- Typography scale --- */
+  --text-display: clamp(3.2rem, 7vw, 6.7rem);
+  --text-h1: clamp(2.5rem, 5vw, 4rem);
+  --text-h2: clamp(2rem, 4vw, 3rem);
+  --text-h3: 1.25rem;
+  --text-body: 1rem;
+  --text-small: 0.875rem;
+  --text-caption: 0.75rem;
+  --leading-tight: 1.1;
+  --leading-body: 1.6;
+
+  /* --- Spacing scale --- */
+  --space-section: clamp(76px, 9vw, 128px);
+  --space-page-inline: 20px;
+  --card-padding: 22px;
+  --form-gap: 16px;
+  --grid-gap: 16px;
+
+  /* --- Transition scale --- */
+  --transition-fast: 120ms ease;
+  --transition-normal: 180ms ease;
+  --transition-slow: 280ms ease;
+
+  /* --- Focus system --- */
+  --focus-color: var(--color-primary);
+  --focus-ring: 0 0 0 3px rgba(37, 99, 235, 0.35);
+  --focus-ring-inset: 0 0 0 4px rgba(37, 99, 235, 0.12);
 }
 
 @theme inline {
@@ -79,6 +131,23 @@ a {
 ::selection {
   background: var(--color-primary);
   color: white;
+}
+
+/* --- Global focus system: accessible, consistent, blue-palette --- */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--focus-color);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+
+/* Dark surfaces (hero, trust, footer) get a light halo for contrast */
+:where(.hero-section, .trust-section, .footer, .request-page-hero)
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline-color: #ffffff;
+}
+
+::placeholder {
+  color: var(--color-placeholder);
 }
 
 .page-shell {
@@ -212,7 +281,7 @@ a {
   right: -80px;
   width: 570px;
   height: 570px;
-  border: 1px solid rgba(215, 243, 106, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   content: "";
 }
@@ -305,7 +374,7 @@ a {
   display: inline-flex;
   border-radius: 999px;
   padding: 7px 10px;
-  background: rgba(215, 243, 106, 0.16);
+  background: rgba(255, 255, 255, 0.16);
   color: var(--lime);
   font-size: 0.62rem;
   font-weight: 800;
@@ -1075,6 +1144,10 @@ a {
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    animation-timeline: auto !important;
+    scroll-behavior: auto !important;
   }
 }
 
@@ -1260,10 +1333,10 @@ a {
 .form-input:focus,
 .budget-grid input:focus,
 .budget-grid select:focus {
-  border-color: var(--forest);
+  border-color: var(--color-primary);
   outline: 0;
-  background: white;
-  box-shadow: 0 0 0 4px rgba(23, 77, 58, 0.1);
+  background: var(--color-surface);
+  box-shadow: var(--focus-ring-inset);
 }
 
 .form-textarea,
@@ -1289,7 +1362,7 @@ a {
 .form-textarea::placeholder,
 .form-input::placeholder,
 .budget-grid input::placeholder {
-  color: #9aa69d;
+  color: var(--color-placeholder);
 }
 
 .example-list {
@@ -1347,9 +1420,9 @@ a {
 
 .selection-card.selected,
 .condition-card.selected {
-  border-color: var(--forest);
-  background: #eff6e9;
-  box-shadow: 0 0 0 3px rgba(23, 77, 58, 0.1);
+  border-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .selection-card {
@@ -1495,8 +1568,8 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #aebcaf;
-  border-radius: 16px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
   background: var(--surface-soft);
   color: var(--forest);
   cursor: pointer;
@@ -1505,8 +1578,8 @@ a {
 }
 
 .upload-zone:hover {
-  border-color: var(--forest);
-  background: #e6efe3;
+  border-color: var(--color-primary);
+  background: #dbeafe;
 }
 
 .upload-zone input {
@@ -2079,8 +2152,8 @@ a {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  border: 1px dashed #b6c4b6;
-  border-radius: 18px;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
   padding: 40px 20px;
   text-align: center;
 }
@@ -4053,5 +4126,199 @@ a {
 @media (max-width: 640px) {
   .ai-search-panel .button-primary {
     width: 100%;
+  }
+}
+
+/* =====================================================================
+   FOUNDATION — Skeleton, Toast, Scroll-driven animation
+   (Step 1: foundation only. Reveal classes are defined but not yet
+   attached to page components — that happens in later steps.)
+   ===================================================================== */
+
+/* --- Skeleton: subtle, low-CPU shimmer --- */
+.skeleton {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-border) 60%, var(--color-surface));
+}
+
+.skeleton::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--color-surface) 65%, transparent) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.6s ease-in-out infinite;
+  content: "";
+}
+
+@keyframes skeleton-sweep {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeleton-page .skeleton-hero {
+  height: 260px;
+  background: color-mix(in srgb, var(--color-primary) 12%, var(--color-surface));
+}
+
+.skeleton-body {
+  padding-block: 40px;
+  display: grid;
+  gap: 24px;
+}
+
+.skeleton-search {
+  height: 64px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-card {
+  min-height: 240px;
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-dashboard {
+  display: grid;
+  gap: 24px;
+}
+
+.skeleton-title {
+  height: 40px;
+  width: min(320px, 60%);
+}
+
+.skeleton-stat {
+  min-height: 120px;
+  border-radius: var(--radius-lg);
+}
+
+/* --- Toast: clean surface, token-driven, accessible --- */
+.toast-stack {
+  position: fixed;
+  z-index: 60;
+  right: 16px;
+  bottom: 16px;
+  display: grid;
+  gap: 10px;
+  width: min(360px, calc(100vw - 32px));
+}
+
+.toast-item {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: var(--shadow-elevated);
+  animation: toast-in var(--transition-slow) both;
+}
+
+.toast-item p {
+  margin: 0;
+  flex: 1;
+  font-size: var(--text-small);
+  line-height: 1.45;
+}
+
+.toast-item > span {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  flex: 0 0 22px;
+  border-radius: var(--radius-pill);
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.toast-item button {
+  border: 0;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.toast-item button:hover {
+  color: var(--color-text);
+}
+
+.toast-success {
+  border-left-color: var(--color-success);
+}
+
+.toast-success > span {
+  background: var(--color-success);
+}
+
+.toast-error {
+  border-left-color: var(--color-error);
+}
+
+.toast-error > span {
+  background: var(--color-error);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- Scroll-driven animation foundation ---
+   Native CSS scroll timelines. Guarded by @supports so unsupported
+   browsers simply render the content in its final (visible) state —
+   nothing is hidden without a working animation to reveal it. */
+@keyframes reveal-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .reveal-on-scroll,
+    .reveal-on-scroll-fade {
+      animation: reveal-fade-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 32%;
+    }
+
+    .reveal-on-scroll-fade {
+      animation-name: reveal-fade;
+    }
   }
 }
