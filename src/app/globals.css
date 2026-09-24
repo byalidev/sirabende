@@ -494,6 +494,11 @@ body:has(.hero-section) .navbar .nav-icon-link,
   color: rgba(255, 255, 255, 0.75);
 }
 
+body:has(.hero-section) .nav-actions,
+.request-page .nav-actions {
+  transform: translateX(-30%);
+}
+
 body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
 .request-page .navbar .nav-inner.menu-open .nav-link {
   border-top-color: rgba(255, 255, 255, 0.12);
