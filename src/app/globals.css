@@ -1489,9 +1489,40 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
 }
 
 @media (max-width: 900px) {
-  .nav-links,
-  .nav-login {
+  .navbar {
+    min-height: 74px;
+  }
+
+  .nav-inner {
+    min-height: 74px;
+    gap: 12px;
+  }
+
+  .brand {
+    flex-shrink: 0;
+  }
+
+  .brand-logo {
+    width: 120px;
+    height: 42px;
+  }
+
+  .nav-links {
     display: none;
+  }
+
+  .nav-login {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+    max-width: 92px;
+    padding: 7px 10px;
+    font-size: 0.68rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .nav-user-mobile {
@@ -1499,7 +1530,21 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
   }
 
   .menu-toggle {
-    display: block;
+    display: none;
+  }
+
+  .nav-actions {
+    gap: 6px;
+    min-width: 0;
+  }
+
+  .nav-action-links {
+    gap: 6px;
+  }
+
+  .nav-icon-button {
+    width: 30px;
+    height: 30px;
   }
 
   .nav-inner.menu-open {
