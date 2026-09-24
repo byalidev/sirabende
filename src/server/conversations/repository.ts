@@ -2,6 +2,7 @@ import "server-only";
 
 import { Prisma, type OfferStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { getPublicStrikeWarning, getTrustScore, type PublicStrikeWarning, type TrustScore } from "../strikes/repository";
 
 export class ConversationAccessError extends Error {
   constructor(message = "Bu konuşmaya erişim yetkiniz yok.") {
@@ -51,6 +52,8 @@ export type ConversationListItem = ConversationView & {
   lastMessage: MessageView | null;
   unreadCount: number;
 };
+
+export type ConversationWithMessages = ConversationView & { messages: MessageView[]; counterpartyWarning: PublicStrikeWarning; counterpartyTrustScore: TrustScore; hasModerationWarning: boolean };
 
 function toConversationView(conversation: ConversationRecord): ConversationView {
   return {
@@ -102,7 +105,7 @@ export async function getConversationForActor(id: string, actorId: string) {
     where: { id, OR: [{ buyerId: actorId }, { sellerId: actorId }] },
     include: {
       ...conversationRelations,
-      messages: { orderBy: { createdAt: "asc" }, take: 100, select: { id: true, conversationId: true, senderId: true, content: true, readAt: true, createdAt: true } },
+      messages: { orderBy: { createdAt: "asc" }, take: 100, select: { id: true, conversationId: true, senderId: true, content: true, readAt: true, createdAt: true, moderationFlags: { select: { id: true } } } },
     },
   });
 
@@ -113,10 +116,15 @@ export async function getConversationForActor(id: string, actorId: string) {
     data: { readAt: new Date() },
   });
 
+  const otherUserId = conversation.buyerId === actorId ? conversation.sellerId : conversation.buyerId;
+  const [counterpartyWarning, counterpartyTrustScore] = await Promise.all([getPublicStrikeWarning(otherUserId), getTrustScore(otherUserId)]);
   return {
     ...toConversationView(conversation),
     messages: conversation.messages.map(toMessageView),
-  };
+    counterpartyWarning,
+    counterpartyTrustScore,
+    hasModerationWarning: conversation.messages.some((message) => message.moderationFlags.length > 0),
+  } satisfies ConversationWithMessages;
 }
 
 export async function getOrCreateConversationForOffer(offerId: string, actorId: string) {

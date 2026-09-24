@@ -12,7 +12,7 @@ export function TrustSection() {
     <section className="section-pad trust-section">
       <Container>
         <div className="trust-grid">
-          <SectionHeading eyebrow="Neden SıraBende?" title="Daha az arama. Daha çok seçenek." copy="SıraBende, alışverişi satıcının vitrininden değil, senin ihtiyacından başlatır." />
+          <SectionHeading eyebrow="Neden My Turn?" title="Daha az arama. Daha çok seçenek." copy="My Turn, alışverişi satıcının vitrininden değil, senin ihtiyacından başlatır." />
           <div className="trust-points">
             {points.map((point) => (
               <article className="trust-point" key={point.number}>

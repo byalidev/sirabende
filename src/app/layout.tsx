@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Footer } from "../components/navigation/Footer";
+import { Navbar } from "../components/navigation/Navbar";
+import { FeedbackWidget } from "../components/feedback/FeedbackWidget";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,8 +16,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SıraBende | İhtiyacını söyle, teklifler sana gelsin",
+  title: "My Turn | İhtiyacını söyle, teklifler sana gelsin",
   description: "Aradığını aramak yerine ihtiyacını anlat, sana gelen teklifleri karşılaştır.",
+  icons: {
+    icon: "/logo2.ico",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,7 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="tr"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-slate-50 text-slate-900">{children}</body>
+      <body className="min-h-full bg-slate-50 text-slate-900"><Navbar /><div className="app-content">{children}</div><Footer /><FeedbackWidget /></body>
     </html>
   );
 }

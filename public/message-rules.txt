@@ -1,0 +1,10 @@
+MESAJLASMA KURALLARI
+
+- Telefon numarasi, IBAN, banka bilgisi ve sifre paylasma.
+- WhatsApp, Telegram veya baska platformlara yonlendirme yapma.
+- Hakaret, tehdit, kisisel saldiri ve rahatsiz edici ifadeler kullanma.
+- Kapora, dogrulama kodu veya supheli odeme taleplerine dikkat et.
+- Urun ve teslimat detaylarini platform icinde, acik ve saygili bicimde konus.
+- Supheli bir mesajla karsilasirsan mesaji sikayet et.
+
+Mesajlar, platform guvenligini korumak ve kurallara aykiri icerikleri incelemek amaciyla yetkili ekip tarafindan okunabilir. Otomatik isaretleme tek basina yaptirim anlamina gelmez; gerekli durumlarda admin incelemesi yapilir.

@@ -4,18 +4,18 @@
 
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle } from "lucide-react";
 import { locations } from "../../config/locations";
 import {
   initialRequestData,
   requestCategories,
   requestConditions,
   requestExamples,
+  requestMatchFeatures,
   steps,
   type RequestFormData,
-  type RequestImage,
 } from "./requestData";
 import { RequestPreview } from "./RequestPreview";
-import { showToast } from "../ui/toast";
 
 const draftKey = "sirabende-request-draft";
 const maxDescriptionLength = 2000;
@@ -48,7 +48,6 @@ export function RequestWizard() {
   const [data, setData] = useState<RequestFormData>(initialRequestData);
   const [error, setError] = useState("");
   const [draftNotice, setDraftNotice] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const savedDraft = window.localStorage.getItem(draftKey);
@@ -98,19 +97,15 @@ export function RequestWizard() {
     setDraftNotice("Taslak temizlendi.");
   };
 
-  const handleImageChange = (event: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files ?? []);
-    const availableSlots = 5 - data.images.length;
-    const validFiles = files.slice(0, availableSlots).filter((file) => file.type.startsWith("image/") && file.size <= 5 * 1024 * 1024);
-    const nextImages: RequestImage[] = validFiles.map((file) => ({ id: `${file.name}-${file.lastModified}`, name: file.name, url: URL.createObjectURL(file) }));
-    setData((current) => ({ ...current, images: [...current.images, ...nextImages] }));
-    setError(validFiles.length < files.length ? "En fazla 5 fotoğraf ve fotoğraf başına 5 MB ekleyebilirsin." : "");
-    event.target.value = "";
-  };
-
-  const removeImage = (image: RequestImage) => {
-    URL.revokeObjectURL(image.url);
-    setData((current) => ({ ...current, images: current.images.filter((item) => item.id !== image.id) }));
+  const togglePreferredFeature = (value: string) => {
+    setData((current) => ({
+      ...current,
+      preferredFeatures: current.preferredFeatures.includes(value)
+        ? current.preferredFeatures.filter((item) => item !== value)
+        : [...current.preferredFeatures, value],
+    }));
+    setError("");
+    setDraftNotice("");
   };
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -135,17 +130,20 @@ export function RequestWizard() {
           categorySlug: data.category,
           minBudget: data.minBudget,
           maxBudget: data.maxBudget,
+          flexibleBudget: data.flexibleBudget,
           city: data.city,
           district: data.district,
           condition: data.condition,
+          sameDayNeeded: data.sameDayNeeded,
+          preferredFeatures: data.preferredFeatures,
         }),
       });
       const result = (await response.json()) as { id?: string; error?: string };
       if (!response.ok || !result.id) throw new Error(result.error || "Talep oluşturulurken bir hata oluştu.");
       window.localStorage.removeItem(draftKey);
       router.push(`/talepler/${result.id}`);
-    } catch {
-      setError("Talep oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.");
+    } catch (publishError) {
+      setError(publishError instanceof Error ? publishError.message : "Talep oluşturulurken bir hata oluştu. Lütfen tekrar deneyin.");
       setIsSubmitting(false);
     }
   };
@@ -199,16 +197,33 @@ export function RequestWizard() {
           ) : null}
 
           {step === 5 ? (
-            <div className="form-step-content"><label className="form-label" htmlFor="title">Talebine bir başlık ver</label><input id="title" name="title" className="form-input" value={data.title} onChange={(event) => updateData("title", event.target.value)} placeholder="İzmir'de temiz PS5 Slim arıyorum" maxLength={100} /><div className="character-count">{data.title.length}/100 karakter</div><label className="form-label form-label-spaced" htmlFor="description">Biraz daha detay ver</label><textarea id="description" name="description" className="form-textarea" value={data.description} onChange={(event) => updateData("description", event.target.value)} placeholder="Kutusu, faturası ve kozmetik durumu hakkında beklentilerini anlat..." maxLength={maxDescriptionLength} /><div className="character-count">{data.description.length}/{maxDescriptionLength} karakter</div></div>
+            <div className="form-step-content"><label className="form-label" htmlFor="title">Talebine bir başlık ver</label><input id="title" name="title" className="form-input" value={data.title} onChange={(event) => updateData("title", event.target.value)} placeholder="İzmir'de temiz PS5 Slim arıyorum" maxLength={100} /><div className="character-count">{data.title.length}/100 karakter</div><label className="form-label form-label-spaced" htmlFor="description">Biraz daha detay ver</label><textarea id="description" name="description" className="form-textarea" value={data.description} onChange={(event) => updateData("description", event.target.value)} placeholder="Kutusu, faturası ve kozmetik durumu hakkında beklentilerini anlat..." maxLength={maxDescriptionLength} /><div className="character-count">{data.description.length}/{maxDescriptionLength} karakter</div><label className="check-row form-label-spaced"><input type="checkbox" checked={data.sameDayNeeded} onChange={(event) => updateData("sameDayNeeded", event.target.checked)} /><span>Aynı Gün Lazım</span></label><p className="field-hint">Bu seçenek açıldığında talebiniz 36 saat sonra otomatik olarak silinir.</p></div>
           ) : null}
 
           {step === 6 ? (
-            <div className="form-step-content"><div className="upload-zone" onClick={() => fileInputRef.current?.click()} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") fileInputRef.current?.click(); }} role="button" tabIndex={0}><span className="upload-icon">＋</span><strong>Fotoğraf ekle</strong><small>JPG, PNG veya WEBP · En fazla 5 MB</small><input ref={fileInputRef} type="file" accept="image/*" multiple onChange={handleImageChange} /></div><p className="field-hint">Fotoğraflar sadece bu önizlemede kullanılır, server&apos;a yüklenmez.</p>{data.images.length > 0 ? <div className="image-list">{data.images.map((image) => <div className="image-preview" key={image.id}><img src={image.url} alt={`${image.name} önizlemesi`} /><button type="button" onClick={() => removeImage(image)} aria-label={`${image.name} fotoğrafını sil`}>×</button></div>)}</div> : null}</div>
+            <div className="form-step-content">
+              <fieldset className="form-fieldset">
+                <legend className="form-label">Hangi özellikler önemli?</legend>
+                <div className="condition-list">
+                  {requestMatchFeatures.map((feature) => (
+                    <button
+                      className={`condition-card ${data.preferredFeatures.includes(feature.value) ? "selected" : ""}`}
+                      type="button"
+                      key={feature.value}
+                      onClick={() => togglePreferredFeature(feature.value)}
+                    >
+                      <span className="condition-radio" />
+                      <span><strong>{feature.label}</strong><small>{feature.value === "FAST_DELIVERY" ? "Hızlı gönderim tercih edilir." : "Eşleşme için önemli bir kriter."}</small></span>
+                    </button>
+                  ))}
+                </div>
+              </fieldset>
+            </div>
           ) : null}
 
-          {step === 7 ? <div className="form-step-content"><RequestPreview data={data} /><p className="demo-disclaimer">Talebin database&apos;e kaydedilecek. Fotoğraflar bu fazda yüklenmez.</p></div> : null}
+          {step === 7 ? <div className="form-step-content"><RequestPreview data={data} /><p className="demo-disclaimer">Talebin database&apos;e kaydedilecek. Eşleşme, başlık, açıklama ve seçilen özelliklere göre değerlendirilir.</p></div> : null}
 
-          {error ? <p className="form-error" role="alert">{error}</p> : null}
+          {error ? <div className="form-error" role="alert" aria-live="assertive"><AlertCircle aria-hidden="true" size={18} /><span>{error}</span></div> : null}
           <div className="wizard-actions"><button className="button-quiet" type="button" onClick={goBack} disabled={step === 0 || isSubmitting}>← Geri</button>{step < steps.length - 1 ? <button className="button-primary" type="button" onClick={goNext} disabled={isSubmitting}>Devam <span aria-hidden="true">→</span></button> : <button className="button-primary" type="button" onClick={publishRequest} disabled={isSubmitting}>{isSubmitting ? "Talep oluşturuluyor..." : "Talebi Yayınla"} {!isSubmitting ? <span aria-hidden="true">↗</span> : null}</button>}</div>
           <button className="clear-draft" type="button" onClick={clearDraft}>Taslağı temizle</button>
         </div>

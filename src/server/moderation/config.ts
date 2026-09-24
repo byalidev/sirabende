@@ -1,0 +1,12 @@
+import type { MessageModerationSeverity } from "@prisma/client";
+
+export const messageModerationSeverity: Record<"PROFANITY_LOW" | "PROFANITY_MEDIUM" | "PROFANITY_HIGH" | "PHONE_NUMBER" | "BANKING" | "EXTERNAL_CONTACT_LOW" | "EXTERNAL_CONTACT_MEDIUM" | "SUSPICIOUS_CONTENT", MessageModerationSeverity> = {
+  PROFANITY_LOW: "LOW",
+  PROFANITY_MEDIUM: "MEDIUM",
+  PROFANITY_HIGH: "HIGH",
+  PHONE_NUMBER: "HIGH",
+  BANKING: "HIGH",
+  EXTERNAL_CONTACT_LOW: "LOW",
+  EXTERNAL_CONTACT_MEDIUM: "MEDIUM",
+  SUSPICIOUS_CONTENT: "MEDIUM",
+};

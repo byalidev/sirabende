@@ -1,4 +1,4 @@
-export type ReportTargetType = "USER" | "REQUEST" | "OFFER";
+export type ReportTargetType = "USER" | "REQUEST" | "OFFER" | "MESSAGE";
 
 export const reportReasons = ["SPAM", "SCAM_SUSPECTED", "MISLEADING", "INAPPROPRIATE", "OTHER"] as const;
 export type ReportReason = (typeof reportReasons)[number];
@@ -13,7 +13,7 @@ export class ReportValidationError extends Error {
 export function validateReportInput(input: unknown) {
   if (!input || typeof input !== "object") throw new ReportValidationError("Geçersiz şikayet verisi.");
   const body = input as { targetType?: unknown; targetId?: unknown; reason?: unknown; description?: unknown };
-  if (!['USER', 'REQUEST', 'OFFER'].includes(String(body.targetType))) throw new ReportValidationError("Geçersiz şikayet hedefi.");
+  if (!['USER', 'REQUEST', 'OFFER', 'MESSAGE'].includes(String(body.targetType))) throw new ReportValidationError("Geçersiz şikayet hedefi.");
   if (typeof body.targetId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.targetId)) throw new ReportValidationError("Geçersiz hedef bağlantısı.");
   if (!reportReasons.includes(body.reason as ReportReason)) throw new ReportValidationError("Geçersiz şikayet nedeni.");
   const description = typeof body.description === "string" ? body.description.trim().replace(/\s+/g, " ") : null;

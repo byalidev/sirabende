@@ -7,9 +7,12 @@ export type CreateRequestInput = {
   categorySlug: string;
   minBudget?: string | null;
   maxBudget?: string | null;
+  flexibleBudget?: boolean;
   city: string;
   district: string;
   condition: string;
+  preferredFeatures?: unknown;
+  sameDayNeeded?: boolean;
 };
 
 export type ValidatedRequestInput = {
@@ -21,6 +24,8 @@ export type ValidatedRequestInput = {
   city: string;
   district: string;
   condition: RequestCondition;
+  preferredFeatures: string[];
+  sameDayNeeded: boolean;
   expiresAt: Date;
 };
 
@@ -84,14 +89,24 @@ export function validateCreateRequest(input: unknown): ValidatedRequestInput {
 
   const minBudget = parseBudget(body.minBudget, "Minimum bütçe");
   const maxBudget = parseBudget(body.maxBudget, "Maksimum bütçe");
-  if (minBudget === null && maxBudget === null) {
+  if (minBudget === null && maxBudget === null && body.flexibleBudget !== true) {
     throw new RequestValidationError("En az bir bütçe değeri girilmeli.");
   }
   if (minBudget && maxBudget && minBudget.greaterThan(maxBudget)) {
     throw new RequestValidationError("Minimum bütçe maksimum bütçeden büyük olamaz.");
   }
 
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  if (body.preferredFeatures != null && !Array.isArray(body.preferredFeatures)) {
+    throw new RequestValidationError("Tercih edilen özellikler dizi olmalı.");
+  }
+
+  const preferredFeatures = Array.isArray(body.preferredFeatures)
+    ? body.preferredFeatures.filter((item): item is string => typeof item === "string").slice(0, 6)
+    : [];
+
+  const sameDayNeeded = body.sameDayNeeded === true;
+
+  const expiresAt = new Date(Date.now() + (sameDayNeeded ? 36 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000));
   if (expiresAt <= new Date()) {
     throw new RequestValidationError("Talep geçerlilik tarihi oluşturulamadı.");
   }
@@ -105,6 +120,8 @@ export function validateCreateRequest(input: unknown): ValidatedRequestInput {
     city,
     district,
     condition: body.condition as RequestCondition,
+    sameDayNeeded,
     expiresAt,
-  };
+    preferredFeatures,
+  } as ValidatedRequestInput & { preferredFeatures: string[] };
 }

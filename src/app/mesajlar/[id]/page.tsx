@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { MessageComposer } from "../../../components/messaging/MessageComposer";
+import { ReportForm } from "../../../components/trust/ReportForm";
+import { TrustScoreBadge } from "../../../components/trust/TrustScoreBadge";
 import { getRequestActor } from "../../../server/requests/actor";
 import { ConversationAccessError, getConversationForActor } from "../../../server/conversations/repository";
 import { requireUser } from "../../../server/auth/auth";
-import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -29,5 +30,10 @@ export default async function ConversationPage({ params }: { params: Promise<{ i
   }
   const otherName = participantName(conversation, actor.id);
 
-  return <main className="conversation-detail-page"><header className="conversation-detail-header"><Link className="back-link dark" href="/mesajlar">← Mesajlara dön</Link><div className="conversation-person"><span className="conversation-avatar">{otherName.slice(0, 1).toUpperCase()}</span><div><h1>{otherName}</h1><p>{conversation.request?.title || "Talep bağlantısı yok"}{conversation.offer ? ` · ${new Intl.NumberFormat("tr-TR").format(Number(conversation.offer.price))} TL teklif` : ""}</p></div></div></header><section className="message-thread" aria-label="Mesaj geçmişi">{conversation.messages.length ? conversation.messages.map((message) => <div className={`message-row ${message.senderId === actor.id ? "mine" : "theirs"}`} key={message.id}><div className="message-bubble"><p>{message.content}</p><time dateTime={message.createdAt}>{new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" }).format(new Date(message.createdAt))}</time></div></div>) : <div className="message-thread-empty"><p>Bu konuşmada henüz mesaj yok.</p><span>İlk mesajı gönder.</span></div>}</section><MessageComposer conversationId={conversation.id} /></main>;
+  return <main className="conversation-detail-page">
+    <header className="conversation-detail-header"><Link className="back-link dark" href="/mesajlar">← Mesajlara dön</Link><div className="conversation-person"><span className="conversation-avatar">{otherName.slice(0, 1).toUpperCase()}</span><div><h1>{otherName}</h1><p>{conversation.request?.title || "Talep bağlantısı yok"}{conversation.offer ? ` · ${new Intl.NumberFormat("tr-TR").format(Number(conversation.offer.price))} TL teklif` : ""}</p></div></div><TrustScoreBadge trustScore={conversation.counterpartyTrustScore} /></header>
+    {/* StrikeWarning banner disabled for now; only the trust score badge is shown. */}
+    <section className="message-thread" aria-label="Mesaj geçmişi">{conversation.messages.length ? conversation.messages.map((message) => <div className={`message-row ${message.senderId === actor.id ? "mine" : "theirs"}`} key={message.id}><div className="message-bubble"><p>{message.content}</p><time dateTime={message.createdAt}>{new Intl.DateTimeFormat("tr-TR", { timeStyle: "short" }).format(new Date(message.createdAt))}</time>{message.senderId !== actor.id ? <ReportForm targetType="MESSAGE" targetId={message.id} /> : null}</div></div>) : <div className="message-thread-empty"><p>Bu konuşmada henüz mesaj yok.</p><span>İlk mesajı gönder.</span></div>}</section>
+    <MessageComposer conversationId={conversation.id} hasModerationWarning={conversation.hasModerationWarning} />
+  </main>;
 }

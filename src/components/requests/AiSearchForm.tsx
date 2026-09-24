@@ -58,6 +58,9 @@ function previewRows(filters: SearchFilters, categoryNames: Record<string, strin
   ].filter((item): item is { label: string; value: string } => Boolean(item));
 }
 
+// Temporarily disabled from the user-facing flow; the AI parsing code/API stays intact for a quick re-enable.
+const AI_SEARCH_ENABLED = false;
+
 export function AiSearchForm({ categoryNames, compact = false }: { categoryNames: Record<string, string>; compact?: boolean }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -96,6 +99,8 @@ export function AiSearchForm({ categoryNames, compact = false }: { categoryNames
   };
 
   const rows = parsed?.filters ? previewRows(parsed.filters, categoryNames) : [];
+
+  if (!AI_SEARCH_ENABLED) return null;
 
   return (
     <section className={`ai-search-panel ${compact ? "ai-search-compact" : ""}`} id="ai-search" aria-label="Doğal dil araması">

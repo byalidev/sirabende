@@ -10,7 +10,7 @@ const reasons = [
   ["OTHER", "Diğer"],
 ] as const;
 
-type TargetType = "USER" | "REQUEST" | "OFFER";
+type TargetType = "USER" | "REQUEST" | "OFFER" | "MESSAGE";
 
 export function ReportForm({ targetType, targetId }: { targetType: TargetType; targetId: string }) {
   const [open, setOpen] = useState(false);

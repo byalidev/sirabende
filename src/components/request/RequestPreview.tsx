@@ -1,6 +1,6 @@
 /* eslint-disable @next/next/no-img-element */
 
-import { categoryLabels, conditionLabels, type RequestFormData } from "./requestData";
+import { categoryLabels, conditionLabels, requestMatchFeatureLabels, type RequestFormData } from "./requestData";
 
 type RequestPreviewProps = {
   data: RequestFormData;
@@ -19,6 +19,7 @@ export function RequestPreview({ data, compact = false }: RequestPreviewProps) {
       <div className="request-preview-heading">
         <span className="request-badge">Alıcı talebi</span>
         <span className="request-preview-status">Yayın önizlemesi</span>
+        {data.sameDayNeeded ? <span className="request-feature-badge sameday">Aynı Gün Lazım</span> : null}
       </div>
       <h2>{data.title || data.searchText || "Talep başlığın"}</h2>
       <div className="request-preview-facts">
@@ -27,9 +28,10 @@ export function RequestPreview({ data, compact = false }: RequestPreviewProps) {
         <span>◈ {data.condition ? conditionLabels[data.condition] : "Ürün durumu"}</span>
       </div>
       {data.description ? <p className="request-preview-description">{data.description}</p> : null}
-      {data.images.length > 0 ? (
-        <div className="request-preview-images" aria-label={`${data.images.length} fotoğraf önizlemesi`}>
-          {data.images.map((image) => <img src={image.url} alt="Talep fotoğrafı" key={image.id} />)}
+      {data.preferredFeatures.length > 0 ? (
+        <div className="request-preview-features">
+          <span className="request-preview-feature-label">Eşleşme kriterleri</span>
+          <div className="request-feature-list">{data.preferredFeatures.map((feature) => <span key={feature}>{requestMatchFeatureLabels[feature] ?? feature}</span>)}</div>
         </div>
       ) : null}
       <div className="request-preview-footer">

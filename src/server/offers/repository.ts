@@ -10,6 +10,10 @@ const offerSelect = {
   sellerId: true,
   price: true,
   currency: true,
+  condition: true,
+  warrantyType: true,
+  warrantyMonths: true,
+  benefits: true,
   description: true,
   deliveryInfo: true,
   status: true,
@@ -25,6 +29,10 @@ export type OfferView = {
   sellerId: string;
   price: string;
   currency: string;
+  condition: "NEW" | "USED" | "REFURBISHED" | "UNKNOWN";
+  warrantyType: "NONE" | "SELLER" | "MANUFACTURER" | "STORE";
+  warrantyMonths: number | null;
+  benefits: string[];
   description: string | null;
   deliveryInfo: string | null;
   status: OfferStatus;
@@ -39,6 +47,10 @@ function toOfferView(offer: OfferRecord): OfferView {
     sellerId: offer.sellerId,
     price: offer.price.toString(),
     currency: offer.currency,
+    condition: offer.condition,
+    warrantyType: offer.warrantyType,
+    warrantyMonths: offer.warrantyMonths,
+    benefits: offer.benefits ?? [],
     description: offer.description,
     deliveryInfo: offer.deliveryInfo,
     status: offer.status,
@@ -80,6 +92,11 @@ export async function getOffersBySeller(sellerId: string, status?: OfferStatus) 
 }
 
 export async function createOffer(requestId: string, sellerId: string, input: ValidatedOfferInput) {
+  const seller = await prisma.user.findUnique({ where: { id: sellerId }, select: { isActive: true, bannedUntil: true, offeringBannedUntil: true } });
+  const now = new Date();
+  if (!seller?.isActive || (seller.bannedUntil && seller.bannedUntil > now)) throw new OfferDomainError("Hesabınız platformdan uzaklaştırıldı.");
+  if (seller.offeringBannedUntil && seller.offeringBannedUntil > now) throw new OfferDomainError("Teklif verme yetkiniz geçici olarak kısıtlandı.");
+
   const request = await prisma.request.findUnique({
     where: { id: requestId },
     select: { status: true, expiresAt: true },
@@ -102,6 +119,10 @@ export async function createOffer(requestId: string, sellerId: string, input: Va
       sellerId,
       price: input.price,
       currency: "TRY",
+      condition: input.condition,
+      warrantyType: input.warrantyType,
+      warrantyMonths: input.warrantyMonths,
+      benefits: input.benefits,
       description: input.description,
       deliveryInfo: input.deliveryInfo,
       status: "PENDING",
@@ -110,6 +131,11 @@ export async function createOffer(requestId: string, sellerId: string, input: Va
   });
 
   return toOfferView(offer);
+}
+
+export async function deleteOfferBySeller(id: string, sellerId: string) {
+  const result = await prisma.offer.deleteMany({ where: { id, sellerId } });
+  if (!result.count) throw new OfferDomainError("Teklif bulunamadı veya silme yetkiniz yok.");
 }
 
 export type OfferRequestState = {

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { ReportStatus } from "@prisma/client";
-import { updateAdminReportStatus } from "../../../../../server/admin/repository";
+import { deleteAdminReport, updateAdminReportStatus } from "../../../../../server/admin/repository";
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) { try { const { id } = await params; const body = await request.json() as { status?: unknown }; if (typeof body.status !== "string" || !Object.values(ReportStatus).includes(body.status as ReportStatus)) return NextResponse.json({ error: "Geçersiz rapor durumu." }, { status: 400 }); const report = await updateAdminReportStatus(id, body.status as ReportStatus); return NextResponse.json({ report: { ...report, updatedAt: report.updatedAt.toISOString() } }); } catch (error) { if (typeof error === "object" && error && "code" in error && error.code === "P2025") return NextResponse.json({ error: "Rapor bulunamadı." }, { status: 404 }); console.error("Admin report update failed", error); return NextResponse.json({ error: "Rapor durumu güncellenemedi." }, { status: 500 }); } }
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) { try { await deleteAdminReport((await params).id); return NextResponse.json({ ok: true }); } catch (error) { if (typeof error === "object" && error && "code" in error && error.code === "P2025") return NextResponse.json({ error: "Rapor bulunamadı." }, { status: 404 }); console.error("Admin report delete failed", error); return NextResponse.json({ error: "Rapor silinemedi." }, { status: 500 }); } }

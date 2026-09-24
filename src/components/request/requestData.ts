@@ -17,7 +17,9 @@ export type RequestFormData = {
   condition: RequestCondition | "";
   title: string;
   description: string;
+  preferredFeatures: string[];
   images: RequestImage[];
+  sameDayNeeded: boolean;
 };
 
 export const initialRequestData: RequestFormData = {
@@ -31,7 +33,9 @@ export const initialRequestData: RequestFormData = {
   condition: "",
   title: "",
   description: "",
+  preferredFeatures: [],
   images: [],
+  sameDayNeeded: false,
 };
 
 export const requestExamples = [
@@ -61,6 +65,19 @@ export const requestConditions: Array<{
   { value: "UNKNOWN", label: "Fark Etmez", description: "En iyi seçeneği göster" },
 ];
 
+export const requestMatchFeatures = [
+  { value: "BOX_INCLUDED", label: "Kutu dahil , " },
+  { value: "INVOICE", label: "Fatura var , " },
+  { value: "FAST_DELIVERY", label: "Hızlı teslim , " },
+  { value: "SHIPPING_INCLUDED", label: "Kargo dahil , " },
+  { value: "CERTIFIED", label: "Sertifikalı / kontrol edilmiş , " },
+  { value: "PAYMENT_PLAN", label: "Taksit imkanı , " },
+] as const;
+
+export const requestMatchFeatureLabels = Object.fromEntries(
+  requestMatchFeatures.map((feature) => [feature.value, feature.label]),
+) as Record<string, string>;
+
 export const steps = [
   { label: "İhtiyaç", shortLabel: "Talep" },
   { label: "Kategori", shortLabel: "Kategori" },
@@ -68,7 +85,7 @@ export const steps = [
   { label: "Konum", shortLabel: "Konum" },
   { label: "Durum", shortLabel: "Durum" },
   { label: "Detaylar", shortLabel: "Detay" },
-  { label: "Fotoğraflar", shortLabel: "Fotoğraf" },
+  { label: "Özellikler", shortLabel: "Özellik" },
   { label: "Önizleme", shortLabel: "Önizleme" },
 ];
 

@@ -1,4 +1,4 @@
 export const appConfig = {
-  appName: "SıraBende",
+  appName: "My Turn",
   databaseUrl: process.env.DATABASE_URL ?? "",
 };

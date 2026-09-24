@@ -36,6 +36,13 @@ enum OfferStatus {
   EXPIRED
 }
 
+enum OfferWarrantyType {
+  NONE
+  SELLER
+  MANUFACTURER
+  STORE
+}
+
 enum NotificationType {
   NEW_OFFER
   OFFER_ACCEPTED
@@ -52,11 +59,85 @@ enum ReportStatus {
   REJECTED
 }
 
+enum ModerationType {
+  GENERAL_BAN
+  POSTING_BAN
+  OFFERING_BAN
+  ACCOUNT_DEACTIVATION
+}
+
+enum StrikeLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum StrikeReason {
+  SPAM
+  UNNECESSARY_MESSAGE
+  WRONG_CATEGORY
+  MINOR_PROFILE_VIOLATION
+  MISLEADING_PRODUCT_INFO
+  FAKE_REQUEST
+  REPEATED_SPAM
+  FAKE_REVIEW
+  OFF_PLATFORM_REDIRECTION
+  FRAUD
+  FAKE_IDENTITY
+  FAKE_BUSINESS
+  THREAT
+  BLACKMAIL
+  PERSONAL_DATA_MISUSE
+  PROHIBITED_PRODUCT
+}
+
+enum StrikeStatus {
+  ACTIVE
+  REVOKED
+}
+
+enum MessageModerationType {
+  PROFANITY
+  PHONE_NUMBER
+  BANKING
+  EXTERNAL_CONTACT
+  SUSPICIOUS_CONTENT
+}
+
+enum MessageModerationSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum MessageModerationReviewStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+  IN_REVIEW
+}
+
+enum AdminActionType {
+  ADMIN_CREATED
+  ADMIN_STATUS_CHANGED
+  ADMIN_ROLE_CHANGED
+  ADMIN_BAN_USER
+  ADMIN_UNBAN_USER
+  ADMIN_REVOKE_SANCTION
+  ADMIN_DELETE_REQUEST
+  ADMIN_DELETE_OFFER
+  ADMIN_APPLY_SANCTION
+  ADMIN_REVIEW_REPORT
+  ADMIN_REVIEW_MESSAGE
+  ADMIN_DELETE_REPORT
+}
+
 model User {
   id           String   @id @default(uuid()) @db.Uuid
   username     String   @unique
   email        String   @unique
   passwordHash String
+  ownerKey     String?  @unique
   firstName    String?
   lastName     String?
   phone        String?
@@ -66,6 +147,14 @@ model User {
   district     String?
   isActive     Boolean  @default(true)
   isVerified   Boolean  @default(false)
+  emailVerifiedAt DateTime?
+  bannedUntil  DateTime?
+  postingBannedUntil DateTime?
+  offeringBannedUntil DateTime?
+  lowStrikeCount Int @default(0)
+  mediumStrikeCount Int @default(0)
+  highStrikeCount Int @default(0)
+  permanentlySuspendedAt DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -84,10 +173,114 @@ model User {
   blocksInitiated     UserBlock[]       @relation("BlockInitiator")
   blocksReceived      UserBlock[]       @relation("BlockTarget")
   sessions            Session[]
+  moderationActions   ModerationAction[] @relation("ModeratedUser")
+  issuedModerations  ModerationAction[] @relation("ModerationAdmin")
+  strikesReceived    UserStrike[]       @relation("StrikeTarget")
+  strikesIssued      UserStrike[]       @relation("StrikeAdmin")
+  requestFeatureUsages RequestFeatureUsage[]
+  reviewedMessageFlags MessageModerationFlag[] @relation("MessageFlagReviewer")
+  adminActionLogs      AdminActionLog[] @relation("AdminActionActor")
+  emailVerificationCodes EmailVerificationCode[]
+  pageFeedbacks        PageFeedback[]
 
   @@index([email])
   @@index([username])
   @@index([city, district])
+}
+
+model EmailVerificationCode {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @db.Uuid
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+model PageFeedback {
+  id        String   @id @default(uuid()) @db.Uuid
+  message   String
+  pageUrl   String
+  userId    String?  @db.Uuid
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+}
+
+model AdminActionLog {
+  id             String          @id @default(uuid()) @db.Uuid
+  adminId        String          @db.Uuid
+  action         AdminActionType
+  targetUserId   String?         @db.Uuid
+  targetRequestId String?        @db.Uuid
+  targetOfferId  String?         @db.Uuid
+  targetReportId String?         @db.Uuid
+  targetMessageId String?        @db.Uuid
+  reason         String?
+  metadata       Json?
+  createdAt      DateTime        @default(now())
+
+  admin User @relation("AdminActionActor", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([createdAt])
+  @@index([adminId, createdAt])
+  @@index([action, createdAt])
+  @@index([targetUserId, createdAt])
+  @@index([targetRequestId, createdAt])
+  @@index([targetOfferId, createdAt])
+}
+
+model ModerationAction {
+  id        String         @id @default(uuid()) @db.Uuid
+  userId    String         @db.Uuid
+  adminId   String         @db.Uuid
+  type      ModerationType
+  reason    String
+  startsAt  DateTime       @default(now())
+  endsAt    DateTime?
+  createdAt DateTime       @default(now())
+
+  user  User @relation("ModeratedUser", fields: [userId], references: [id], onDelete: Cascade)
+  admin User @relation("ModerationAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+
+  @@index([userId, createdAt])
+  @@index([adminId, createdAt])
+}
+
+model UserStrike {
+  id        String       @id @default(uuid()) @db.Uuid
+  userId    String       @db.Uuid
+  adminId   String       @db.Uuid
+  level     StrikeLevel
+  reason    StrikeReason
+  adminNote String?
+  status    StrikeStatus @default(ACTIVE)
+  startsAt  DateTime     @default(now())
+  endsAt    DateTime?
+  revokedAt DateTime?
+  reportId  String?      @db.Uuid
+  messageId String?      @db.Uuid
+  requestId String?      @db.Uuid
+  offerId   String?      @db.Uuid
+  createdAt DateTime     @default(now())
+
+  user    User     @relation("StrikeTarget", fields: [userId], references: [id], onDelete: Restrict)
+  admin   User     @relation("StrikeAdmin", fields: [adminId], references: [id], onDelete: Restrict)
+  report  Report?  @relation("StrikeReport", fields: [reportId], references: [id], onDelete: SetNull)
+  message Message? @relation("StrikeMessage", fields: [messageId], references: [id], onDelete: SetNull)
+  request Request? @relation("StrikeRequest", fields: [requestId], references: [id], onDelete: SetNull)
+  offer   Offer?   @relation("StrikeOffer", fields: [offerId], references: [id], onDelete: SetNull)
+
+  @@index([userId, level, status, createdAt])
+  @@index([adminId, createdAt])
+  @@index([reportId])
 }
 
 model Session {
@@ -177,7 +370,12 @@ model Request {
   city        String
   district    String?
   status      RequestStatus    @default(ACTIVE)
+  sameDayNeeded Boolean        @default(false)
+  preferredFeatures String[]   @default([])
   expiresAt   DateTime?
+  featuredUntil DateTime?
+  pinnedUntil   DateTime?
+  urgentUntil   DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 
@@ -189,30 +387,52 @@ model Request {
   conversations Conversation[]
   reports       Report[]          @relation("RequestReport")
   reviews       Review[]
+  strikes       UserStrike[]      @relation("StrikeRequest")
+  featureUsages RequestFeatureUsage[]
 
   @@index([status, categoryId, productId, city, createdAt])
   @@index([userId, status, createdAt])
   @@index([expiresAt])
+  @@index([status, pinnedUntil, featuredUntil, createdAt])
+}
+
+model RequestFeatureUsage {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @db.Uuid
+  requestId     String   @db.Uuid
+  feature       String
+  durationHours Int
+  createdAt     DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([requestId, createdAt])
 }
 
 model Offer {
-  id           String           @id @default(uuid()) @db.Uuid
-  requestId    String           @db.Uuid
-  sellerId     String           @db.Uuid
-  price        Decimal          @db.Decimal(12, 2)
-  currency     String           @default("TRY")
-  condition    RequestCondition @default(UNKNOWN)
-  description  String?
-  deliveryInfo String?
-  status       OfferStatus      @default(PENDING)
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id             String           @id @default(uuid()) @db.Uuid
+  requestId      String           @db.Uuid
+  sellerId       String           @db.Uuid
+  price          Decimal          @db.Decimal(12, 2)
+  currency       String           @default("TRY")
+  condition      RequestCondition @default(UNKNOWN)
+  warrantyType   OfferWarrantyType @default(NONE)
+  warrantyMonths Int?
+  benefits       String[]         @default([])
+  description    String?
+  deliveryInfo   String?
+  status         OfferStatus      @default(PENDING)
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   request       Request        @relation(fields: [requestId], references: [id], onDelete: Cascade)
   seller        User           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
   conversations Conversation[]
   reports       Report[]       @relation("OfferReport")
   reviews       Review[]
+  strikes       UserStrike[]   @relation("StrikeOffer")
 
   @@index([requestId, sellerId, status])
   @@index([sellerId, status, createdAt])
@@ -250,9 +470,32 @@ model Message {
   conversation Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender       User         @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade)
   reports      Report[]     @relation("MessageReport")
+  strikes      UserStrike[] @relation("StrikeMessage")
+  moderationFlags MessageModerationFlag[]
 
   @@index([conversationId, createdAt])
   @@index([senderId, createdAt])
+}
+
+model MessageModerationFlag {
+  id            String                         @id @default(uuid()) @db.Uuid
+  messageId     String                         @db.Uuid
+  type          MessageModerationType
+  severity      MessageModerationSeverity
+  matchedRule   String
+  maskedText    String?
+  reviewStatus  MessageModerationReviewStatus @default(PENDING)
+  reviewedAt    DateTime?
+  reviewedById  String?                        @db.Uuid
+  adminNote     String?
+  createdAt     DateTime                       @default(now())
+
+  message    Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reviewedBy User?   @relation("MessageFlagReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@index([reviewStatus, createdAt])
+  @@index([type, reviewStatus, createdAt])
+  @@index([messageId, createdAt])
 }
 
 model Notification {
@@ -308,6 +551,7 @@ model Report {
   request      Request? @relation("RequestReport", fields: [requestId], references: [id], onDelete: SetNull)
   offer        Offer?   @relation("OfferReport", fields: [offerId], references: [id], onDelete: SetNull)
   message      Message? @relation("MessageReport", fields: [messageId], references: [id], onDelete: SetNull)
+  strikes      UserStrike[] @relation("StrikeReport")
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])

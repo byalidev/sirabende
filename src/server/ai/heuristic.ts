@@ -54,14 +54,21 @@ function detectCondition(text: string): AiParsedIntent["condition"] {
   return null;
 }
 
+function matchLocationValue(source: string, value: string) {
+  const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escaped}(?:da|de|daki|deki)?(?=$|[^\\p{L}\\p{N}])`, "giu");
+  return pattern.test(source);
+}
+
 function detectLocation(text: string) {
   const lowered = normalize(text);
   let city: string | null = null;
   let district: string | null = null;
   for (const [knownCity, districts] of Object.entries(locations)) {
-    if (lowered.includes(normalize(knownCity))) city = knownCity;
+    if (matchLocationValue(lowered, normalize(knownCity))) city = knownCity;
     for (const item of districts) {
-      if (lowered.includes(normalize(item))) {
+      const normalizedItem = normalize(item);
+      if (matchLocationValue(lowered, normalizedItem)) {
         district = item;
         city = city ?? knownCity;
       }
@@ -80,7 +87,10 @@ function detectCategory(text: string, allowedCategorySlugs: string[]) {
 function extractQuery(text: string, city: string | null, district: string | null) {
   let leftover = text;
   for (const value of [city, district]) {
-    if (value) leftover = leftover.replace(new RegExp(value, "ig"), " ");
+    if (value) {
+      const escaped = value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      leftover = leftover.replace(new RegExp(escaped, "ig"), " ");
+    }
   }
   leftover = leftover
     .replace(/\d+(?:[.,]\d+)?\s*(?:bin|tl)/gi, " ")

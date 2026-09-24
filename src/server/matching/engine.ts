@@ -35,17 +35,32 @@ export async function rankOffersForRequest(request: RequestView) {
       sellerId: true,
       price: true,
       currency: true,
+      condition: true,
+      warrantyType: true,
+      warrantyMonths: true,
+      benefits: true,
       description: true,
       deliveryInfo: true,
       status: true,
-      condition: true,
       createdAt: true,
       updatedAt: true,
-      seller: { select: { city: true, district: true } },
+      seller: { select: { id: true, username: true, city: true, district: true } },
     },
     orderBy: { createdAt: "desc" },
     take: 50,
   });
+  const sellerIds = [...new Set(offers.map((offer) => offer.sellerId))];
+  const reviewSummaries = await Promise.all(sellerIds.map(async (sellerId) => {
+    const summary = await prisma.review.aggregate({
+      where: { reviewedUserId: sellerId },
+      _avg: { rating: true },
+      _count: { _all: true },
+    });
+    return { sellerId, averageRating: summary._avg.rating ?? 0, reviewCount: summary._count._all };
+  }));
+  const reviewMap = new Map(reviewSummaries.map((item) => [item.sellerId, item]));
+  const trustMap = new Map((await Promise.all(sellerIds.map(async (sellerId) => ({ sellerId, trust: await (await import("../strikes/repository")).getTrustScore(sellerId) })))) .map((item) => [item.sellerId, item.trust]));
+
   const productTerms = await productTermsFor(request.title);
   const ranked = rankOffers(requestToMatchProfile(request), offers.map((offer): OfferMatchInput => ({
     id: offer.id,
@@ -64,17 +79,27 @@ export async function rankOffersForRequest(request: RequestView) {
   return ranked.flatMap((item) => {
     const offer = byId.get(item.id);
     if (!offer) return [];
+    const sellerReview = reviewMap.get(offer.sellerId);
+    const sellerTrust = trustMap.get(offer.sellerId);
     return [{
       id: offer.id,
       requestId: offer.requestId,
       sellerId: offer.sellerId,
+      seller: { id: offer.seller.id, username: offer.seller.username },
       price: offer.price.toString(),
       currency: offer.currency,
+      condition: offer.condition,
+      warrantyType: offer.warrantyType,
+      warrantyMonths: offer.warrantyMonths,
+      benefits: offer.benefits ?? [],
       description: offer.description,
       deliveryInfo: offer.deliveryInfo,
       status: offer.status,
       createdAt: offer.createdAt.toISOString(),
       updatedAt: offer.updatedAt.toISOString(),
+      averageRating: sellerReview?.averageRating ?? 0,
+      reviewCount: sellerReview?.reviewCount ?? 0,
+      trustScore: sellerTrust ? sellerTrust.score : null,
       matchScore: item.score,
       matchReasons: item.reasons,
     }];

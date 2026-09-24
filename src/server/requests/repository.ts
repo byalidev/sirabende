@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma, type RequestCondition, type RequestStatus } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
 import { locations } from "../../config/locations";
+import { clearExpiredRequestFeatures } from "./features";
 import { RequestValidationError, type ValidatedRequestInput } from "./validation";
 
 const requestSelect = {
@@ -16,9 +17,15 @@ const requestSelect = {
   district: true,
   condition: true,
   status: true,
+  sameDayNeeded: true,
+  preferredFeatures: true,
   expiresAt: true,
+  featuredUntil: true,
+  pinnedUntil: true,
+  urgentUntil: true,
   createdAt: true,
   updatedAt: true,
+  user: { select: { id: true, username: true } },
   category: { select: { id: true, name: true, slug: true } },
   _count: { select: { offers: true } },
 } satisfies Prisma.RequestSelect;
@@ -36,14 +43,23 @@ export type RequestView = {
   district: string | null;
   condition: RequestCondition;
   status: RequestStatus;
+  sameDayNeeded: boolean;
+  preferredFeatures: string[];
   expiresAt: string | null;
+  featuredUntil: string | null;
+  pinnedUntil: string | null;
+  urgentUntil: string | null;
+  isFeatured: boolean;
+  isPinned: boolean;
+  isUrgent: boolean;
   createdAt: string;
   updatedAt: string;
+  user: { id: string; username: string };
   category: { id: string; name: string; slug: string } | null;
   offerCount: number;
 };
 
-function toRequestView(request: RequestRecord): RequestView {
+function toRequestView(request: RequestRecord, now = new Date()): RequestView {
   return {
     id: request.id,
     title: request.title,
@@ -55,9 +71,18 @@ function toRequestView(request: RequestRecord): RequestView {
     district: request.district,
     condition: request.condition,
     status: request.status,
+    sameDayNeeded: request.sameDayNeeded,
+    preferredFeatures: request.preferredFeatures ?? [],
     expiresAt: request.expiresAt?.toISOString() ?? null,
+    featuredUntil: request.featuredUntil?.toISOString() ?? null,
+    pinnedUntil: request.pinnedUntil?.toISOString() ?? null,
+    urgentUntil: request.urgentUntil?.toISOString() ?? null,
+    isFeatured: Boolean(request.featuredUntil && request.featuredUntil > now),
+    isPinned: Boolean(request.pinnedUntil && request.pinnedUntil > now),
+    isUrgent: Boolean(request.urgentUntil && request.urgentUntil > now),
     createdAt: request.createdAt.toISOString(),
     updatedAt: request.updatedAt.toISOString(),
+    user: request.user,
     category: request.category,
     offerCount: request._count.offers,
   };
@@ -75,6 +100,8 @@ export type RequestFilters = {
   maxBudget?: number;
   condition?: RequestCondition;
   date?: RequestDateFilter;
+  sameDayNeeded?: boolean;
+  featured?: boolean;
   sort?: RequestSort;
   page?: number;
 };
@@ -89,6 +116,11 @@ export type PaginatedRequestView = {
 };
 
 export async function createRequest(input: ValidatedRequestInput & { categoryId: string }, userId: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { isActive: true, bannedUntil: true, postingBannedUntil: true } });
+  const now = new Date();
+  if (!user?.isActive || (user.bannedUntil && user.bannedUntil > now)) throw new RequestValidationError("Hesabınız platformdan uzaklaştırıldı.");
+  if (user.postingBannedUntil && user.postingBannedUntil > now) throw new RequestValidationError("İlan paylaşma yetkiniz geçici olarak kısıtlandı.");
+
   const request = await prisma.request.create({
     data: {
       userId,
@@ -102,6 +134,8 @@ export async function createRequest(input: ValidatedRequestInput & { categoryId:
       district: input.district,
       condition: input.condition,
       status: "ACTIVE",
+      sameDayNeeded: input.sameDayNeeded,
+      preferredFeatures: input.preferredFeatures,
       expiresAt: input.expiresAt,
     },
     select: { id: true },
@@ -123,12 +157,16 @@ export async function getActiveCategoryId(slug: string) {
   return category.id;
 }
 
-function getRequestOrder(sort: RequestSort): Prisma.RequestOrderByWithRelationInput | Prisma.RequestOrderByWithRelationInput[] {
-  if (sort === "oldest") return { createdAt: "asc" };
-  if (sort === "budget_asc") return [{ minBudget: "asc" }, { createdAt: "desc" }];
-  if (sort === "budget_desc") return [{ maxBudget: "desc" }, { createdAt: "desc" }];
-  if (sort === "expiring") return [{ expiresAt: "asc" }, { createdAt: "desc" }];
-  return { createdAt: "desc" };
+function getRequestOrder(sort: RequestSort): Prisma.RequestOrderByWithRelationInput[] {
+  const priority: Prisma.RequestOrderByWithRelationInput[] = [
+    { pinnedUntil: { sort: "desc", nulls: "last" } },
+    { featuredUntil: { sort: "desc", nulls: "last" } },
+  ];
+  if (sort === "oldest") return [...priority, { createdAt: "asc" }];
+  if (sort === "budget_asc") return [...priority, { minBudget: "asc" }, { createdAt: "desc" }];
+  if (sort === "budget_desc") return [...priority, { maxBudget: "desc" }, { createdAt: "desc" }];
+  if (sort === "expiring") return [...priority, { expiresAt: "asc" }, { createdAt: "desc" }];
+  return [...priority, { createdAt: "desc" }];
 }
 
 export async function normalizeRequestFilters(query: Record<string, string | string[] | undefined>): Promise<RequestFilters> {
@@ -153,12 +191,15 @@ export async function normalizeRequestFilters(query: Record<string, string | str
   const date = ["today", "3d", "7d", "30d"].includes(dateValue ?? "") ? dateValue as RequestDateFilter : undefined;
   const sortValue = first(query.sort);
   const sort = ["newest", "oldest", "budget_asc", "budget_desc", "expiring"].includes(sortValue ?? "") ? sortValue as RequestSort : "newest";
+  const sameDayNeeded = ["1", "true"].includes(first(query.sameDayNeeded) ?? "") ? true : undefined;
+  const featured = ["1", "true"].includes(first(query.featured) ?? "") ? true : undefined;
   const pageValue = Number(first(query.page));
   const hasInvalidBudgetRange = minBudget !== undefined && maxBudget !== undefined && minBudget > maxBudget;
-  return { q, category, city, district, minBudget: hasInvalidBudgetRange ? undefined : minBudget, maxBudget: hasInvalidBudgetRange ? undefined : maxBudget, condition, date, sort, page: Number.isInteger(pageValue) && pageValue > 0 ? pageValue : 1 };
+  return { q, category, city, district, minBudget: hasInvalidBudgetRange ? undefined : minBudget, maxBudget: hasInvalidBudgetRange ? undefined : maxBudget, condition, date, sameDayNeeded, featured, sort, page: Number.isInteger(pageValue) && pageValue > 0 ? pageValue : 1 };
 }
 
 export async function getActiveRequests(filters: RequestFilters = {}): Promise<PaginatedRequestView> {
+  await clearExpiredRequestFeatures();
   const where: Prisma.RequestWhereInput = {
     status: "ACTIVE",
     OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
@@ -169,6 +210,8 @@ export async function getActiveRequests(filters: RequestFilters = {}): Promise<P
   if (filters.city) where.city = filters.city;
   if (filters.district) where.district = filters.district;
   if (filters.condition) where.condition = filters.condition;
+  if (filters.sameDayNeeded) where.sameDayNeeded = true;
+  if (filters.featured) where.AND = [...(Array.isArray(where.AND) ? where.AND : []), { OR: [{ featuredUntil: { gt: new Date() } }, { pinnedUntil: { gt: new Date() } }, { urgentUntil: { gt: new Date() } }] }];
   if (filters.minBudget !== undefined) where.AND = [...(Array.isArray(where.AND) ? where.AND : []), { OR: [{ maxBudget: null }, { maxBudget: { gte: filters.minBudget } }] }];
   if (filters.maxBudget !== undefined) where.AND = [...(Array.isArray(where.AND) ? where.AND : []), { OR: [{ minBudget: null }, { minBudget: { lte: filters.maxBudget } }] }];
   if (filters.date) {
@@ -188,7 +231,7 @@ export async function getActiveRequests(filters: RequestFilters = {}): Promise<P
     prisma.request.count({ where }),
   ]);
 
-  return { requests: requests.map(toRequestView), total, page, pageSize: PUBLIC_REQUEST_PAGE_SIZE };
+  return { requests: requests.map((request) => toRequestView(request)), total, page, pageSize: PUBLIC_REQUEST_PAGE_SIZE };
 }
 
 export type OwnerRequestFilter = "ALL" | "ACTIVE" | "EXPIRED" | "CLOSED";
@@ -215,7 +258,7 @@ export async function getRequestsByOwner(userId: string, filter: OwnerRequestFil
     take: 50,
   });
 
-  return requests.map(toRequestView);
+  return requests.map((request) => toRequestView(request));
 }
 
 export async function getActiveRequestsByIds(requestIds: string[]) {
@@ -225,7 +268,7 @@ export async function getActiveRequestsByIds(requestIds: string[]) {
     select: requestSelect,
     orderBy: { createdAt: "desc" },
   });
-  return requests.map(toRequestView);
+  return requests.map((request) => toRequestView(request));
 }
 
 export async function getRequestById(id: string) {
@@ -235,6 +278,11 @@ export async function getRequestById(id: string) {
   });
 
   return request ? toRequestView(request) : null;
+}
+
+export async function deleteRequestByOwner(id: string, userId: string) {
+  const result = await prisma.request.deleteMany({ where: { id, userId } });
+  if (!result.count) throw new RequestValidationError("Talep bulunamadı veya silme yetkiniz yok.");
 }
 
 export async function getActiveCategories() {

@@ -16,6 +16,13 @@ export class AuthError extends Error {
   }
 }
 
+export class ModerationError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "ModerationError";
+  }
+}
+
 function hashToken(token: string) {
   const secret = process.env.SESSION_SECRET;
   if (!secret && process.env.NODE_ENV === "production") throw new Error("SESSION_SECRET is required in production.");
@@ -63,7 +70,7 @@ export async function getCurrentUser() {
     where: { tokenHash: hashToken(token) },
     include: { user: { include: { userRoles: { include: { role: true } } } } },
   });
-  if (!session || session.expiresAt <= new Date() || !session.user.isActive) {
+  if (!session || session.expiresAt <= new Date() || !session.user.isActive || (session.user.bannedUntil && session.user.bannedUntil > new Date())) {
     if (session) await prisma.session.delete({ where: { id: session.id } });
     return null;
   }
@@ -81,5 +88,11 @@ export async function requireRole(roles: Array<"ADMIN" | "SUPER_ADMIN">) {
   if (!user.userRoles.some(({ role }) => roles.some((allowedRole) => allowedRole === role.name))) {
     throw new AuthError("Forbidden");
   }
+  return user;
+}
+
+export async function requireSuperAdmin() {
+  const user = await requireUser();
+  if (!user.userRoles.some(({ role }) => role.name === "SUPER_ADMIN")) throw new AuthError("Forbidden");
   return user;
 }
