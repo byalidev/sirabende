@@ -117,6 +117,20 @@ export async function getAdminUser(id: string) {
   return prisma.user.findUnique({ where: { id }, select: { id: true, username: true, email: true, firstName: true, lastName: true, phone: true, city: true, district: true, isActive: true, isVerified: true, bannedUntil: true, postingBannedUntil: true, offeringBannedUntil: true, lowStrikeCount: true, mediumStrikeCount: true, highStrikeCount: true, permanentlySuspendedAt: true, createdAt: true, userRoles: { select: { role: { select: { name: true } } } }, requests: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, title: true, status: true, createdAt: true } }, offers: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, price: true, status: true, createdAt: true, request: { select: { title: true } } } }, reviewsReceived: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, rating: true, comment: true, createdAt: true, reviewer: { select: { username: true } } } }, reportsFiled: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, reason: true, status: true, createdAt: true } }, moderationActions: { orderBy: { createdAt: "desc" }, take: 30, select: { id: true, type: true, reason: true, startsAt: true, endsAt: true, createdAt: true, admin: { select: { username: true } } } }, blocksInitiated: { select: { blocked: { select: { username: true } } } }, blocksReceived: { select: { blocker: { select: { username: true } } } } } });
 }
 
+export async function deleteUserAccountAsSuperAdmin(id: string) {
+  const actor = await requireRole(["SUPER_ADMIN"]);
+  if (actor.id === id) throw new Error("SELF_USER_DELETE");
+  const user = await prisma.user.findUnique({ where: { id }, select: { id: true, userRoles: { select: { role: { select: { name: true } } } } } });
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.userRoles.some(({ role }) => role.name === "ADMIN" || role.name === "SUPER_ADMIN")) throw new Error("ADMIN_ACCOUNT_DELETE_NOT_ALLOWED");
+  await prisma.$transaction(async (transaction) => {
+    await transaction.userStrike.deleteMany({ where: { OR: [{ userId: id }, { adminId: id }] } });
+    await transaction.adminActionLog.deleteMany({ where: { adminId: id } });
+    await transaction.user.delete({ where: { id } });
+  });
+  return user;
+}
+
 export async function getUserModerationHistory(userId: string) {
   return prisma.moderationAction.findMany({ where: { userId }, orderBy: { createdAt: "desc" }, take: 30, select: { id: true, type: true, reason: true, startsAt: true, endsAt: true, createdAt: true } });
 }

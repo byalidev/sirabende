@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { updateAdminUserModeration } from "../../../../../server/admin/repository";
+import { deleteUserAccountAsSuperAdmin, updateAdminUserModeration } from "../../../../../server/admin/repository";
+import { AuthError } from "../../../../../server/auth/auth";
 
 function parseDate(value: unknown) {
   if (value === null || value === "") return null;
@@ -23,5 +24,20 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     if (typeof error === "object" && error && "code" in error && error.code === "P2025") return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
     console.error("Admin user moderation failed", error);
     return NextResponse.json({ error: "Kullanıcı yaptırımları güncellenemedi." }, { status: 500 });
+  }
+}
+
+export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    await deleteUserAccountAsSuperAdmin((await params).id);
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message === "Forbidden" ? "Bu işlem yalnızca SUPER_ADMIN için kullanılabilir." : "Oturumunuz sona ermiş. Lütfen tekrar giriş yapın." }, { status: error.message === "Forbidden" ? 403 : 401 });
+    if (error instanceof Error && error.message === "SELF_USER_DELETE") return NextResponse.json({ error: "Kendi hesabınızı silemezsiniz." }, { status: 400 });
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
+    if (error instanceof Error && error.message === "ADMIN_ACCOUNT_DELETE_NOT_ALLOWED") return NextResponse.json({ error: "Yönetici hesabı silinemez; ayrı admin kaldırma akışı kullanılır." }, { status: 400 });
+    if (typeof error === "object" && error && "code" in error && error.code === "P2025") return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
+    console.error("Super admin user deletion failed", error);
+    return NextResponse.json({ error: "Kullanıcı hesabı silinemedi." }, { status: 500 });
   }
 }
