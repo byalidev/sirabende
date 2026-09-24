@@ -117,6 +117,21 @@ export async function getAdminUser(id: string) {
   return prisma.user.findUnique({ where: { id }, select: { id: true, username: true, email: true, firstName: true, lastName: true, phone: true, city: true, district: true, isActive: true, isVerified: true, bannedUntil: true, postingBannedUntil: true, offeringBannedUntil: true, lowStrikeCount: true, mediumStrikeCount: true, highStrikeCount: true, permanentlySuspendedAt: true, createdAt: true, userRoles: { select: { role: { select: { name: true } } } }, requests: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, title: true, status: true, createdAt: true } }, offers: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, price: true, status: true, createdAt: true, request: { select: { title: true } } } }, reviewsReceived: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, rating: true, comment: true, createdAt: true, reviewer: { select: { username: true } } } }, reportsFiled: { orderBy: { createdAt: "desc" }, take: 10, select: { id: true, reason: true, status: true, createdAt: true } }, moderationActions: { orderBy: { createdAt: "desc" }, take: 30, select: { id: true, type: true, reason: true, startsAt: true, endsAt: true, createdAt: true, admin: { select: { username: true } } } }, blocksInitiated: { select: { blocked: { select: { username: true } } } }, blocksReceived: { select: { blocker: { select: { username: true } } } } } });
 }
 
+export async function updateUserRoleAsSuperAdmin(id: string, role: "USER" | "ADMIN") {
+  const actor = await requireRole(["SUPER_ADMIN"]);
+  if (actor.id === id) throw new Error("SELF_ROLE_CHANGE");
+  const user = await prisma.user.findUnique({ where: { id }, select: { id: true, userRoles: { select: { role: { select: { name: true } } } } } });
+  if (!user) throw new Error("USER_NOT_FOUND");
+  if (user.userRoles.some(({ role }) => role.name === "SUPER_ADMIN")) throw new Error("SUPER_ADMIN_PROTECTED");
+  const targetRole = await prisma.role.upsert({ where: { name: role }, update: {}, create: { name: role, description: role === "ADMIN" ? "Yönetici" : "Standart kullanıcı" } });
+  await prisma.$transaction(async (transaction) => {
+    await transaction.userRole.deleteMany({ where: { userId: id } });
+    await transaction.userRole.create({ data: { userId: id, roleId: targetRole.id } });
+    await transaction.adminActionLog.create({ data: { adminId: actor.id, action: "ADMIN_ROLE_CHANGED", targetUserId: id, reason: role === "ADMIN" ? "User, admin yetkisi aldı." : "Admin yetkisi kaldırıldı." } });
+  });
+  return user;
+}
+
 export async function deleteUserAccountAsSuperAdmin(id: string) {
   const actor = await requireRole(["SUPER_ADMIN"]);
   if (actor.id === id) throw new Error("SELF_USER_DELETE");

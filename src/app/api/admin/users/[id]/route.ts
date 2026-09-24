@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { deleteUserAccountAsSuperAdmin, updateAdminUserModeration } from "../../../../../server/admin/repository";
+import { deleteUserAccountAsSuperAdmin, updateAdminUserModeration, updateUserRoleAsSuperAdmin } from "../../../../../server/admin/repository";
 import { AuthError } from "../../../../../server/auth/auth";
 
 function parseDate(value: unknown) {
@@ -12,7 +12,12 @@ function parseDate(value: unknown) {
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const body = await request.json() as { isActive?: unknown; bannedUntil?: unknown; postingBannedUntil?: unknown; offeringBannedUntil?: unknown; reason?: unknown };
+    const body = await request.json() as { isActive?: unknown; bannedUntil?: unknown; postingBannedUntil?: unknown; offeringBannedUntil?: unknown; reason?: unknown; role?: unknown };
+    if (body.role !== undefined && body.role !== "USER" && body.role !== "ADMIN") return NextResponse.json({ error: "Rol geçersiz." }, { status: 400 });
+    if (body.role !== undefined) {
+      const user = await updateUserRoleAsSuperAdmin((await params).id, body.role as "USER" | "ADMIN");
+      return NextResponse.json({ user, role: body.role });
+    }
     if (typeof body.isActive !== "boolean") return NextResponse.json({ error: "Hesap durumu geçersiz." }, { status: 400 });
     if (typeof body.reason !== "string" || !body.reason.trim()) return NextResponse.json({ error: "Yaptırım nedeni zorunludur." }, { status: 400 });
     const user = await updateAdminUserModeration((await params).id, { isActive: body.isActive, bannedUntil: parseDate(body.bannedUntil), postingBannedUntil: parseDate(body.postingBannedUntil), offeringBannedUntil: parseDate(body.offeringBannedUntil), reason: body.reason });
@@ -20,10 +25,13 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_DATE") return NextResponse.json({ error: "Geçersiz tarih." }, { status: 400 });
     if (error instanceof Error && error.message === "SELF_MODERATION") return NextResponse.json({ error: "Kendi hesabınızı yönetemezsiniz." }, { status: 400 });
+    if (error instanceof Error && error.message === "SELF_ROLE_CHANGE") return NextResponse.json({ error: "Kendi yetkinizi değiştiremezsiniz." }, { status: 400 });
+    if (error instanceof Error && error.message === "SUPER_ADMIN_PROTECTED") return NextResponse.json({ error: "Super admin hesabının yetkisi değiştirilemez." }, { status: 400 });
     if (error instanceof Error && error.message === "MODERATION_REASON_REQUIRED") return NextResponse.json({ error: "Yaptırım nedeni zorunludur." }, { status: 400 });
+    if (error instanceof AuthError) return NextResponse.json({ error: error.message === "Forbidden" ? "Bu işlem yalnızca SUPER_ADMIN için kullanılabilir." : "Oturumunuz sona ermiş. Lütfen tekrar giriş yapın." }, { status: error.message === "Forbidden" ? 403 : 401 });
     if (typeof error === "object" && error && "code" in error && error.code === "P2025") return NextResponse.json({ error: "Kullanıcı bulunamadı." }, { status: 404 });
     console.error("Admin user moderation failed", error);
-    return NextResponse.json({ error: "Kullanıcı yaptırımları güncellenemedi." }, { status: 500 });
+    return NextResponse.json({ error: "Kullanıcı işlemi gerçekleştirilemedi." }, { status: 500 });
   }
 }
 
