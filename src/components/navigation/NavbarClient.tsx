@@ -40,6 +40,8 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
     { label: "Panel", href: "/panel", icon: LayoutDashboard },
   ];
   const links = user ? [] : guestLinks;
+  const displayName = user ? (user.firstName || user.username) : "";
+  const compactDisplayName = displayName.length > 12 ? `${displayName.slice(0, 11)}…` : displayName;
 
   return (
     <header className="navbar">
@@ -69,8 +71,10 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
                     </Link>
                   ))}
                 </div>
-                <a className="nav-login" href="/panel">{user.firstName || user.username}</a>
-                <span className="nav-logout-desktop"><LogoutButton className="nav-login" /></span>
+                <div className="nav-user-meta">
+                  <a className="nav-login nav-user-name" href="/panel" title={displayName}>{compactDisplayName}</a>
+                  <span className="nav-logout-desktop"><LogoutButton className="nav-login nav-logout-button" /></span>
+                </div>
               </>
             ) : (
               <>

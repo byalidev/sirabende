@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
-import { isValidPassword, PASSWORD_MIN_LENGTH_MESSAGE, passwordsMatch } from "../../../../lib/auth-validation";
+import { isValidPassword, isValidUsername, PASSWORD_MIN_LENGTH_MESSAGE, USERNAME_VALIDATION_MESSAGE, passwordsMatch } from "../../../../lib/auth-validation";
 import { hashPassword } from "../../../../server/auth/auth";
 import { issueVerificationCode } from "../../../../server/auth/email-verification";
 import { sendVerificationEmail } from "../../../../lib/mail";
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Ad, soyad, kullanıcı adı, e-posta ve telefon zorunludur." }, { status: 400 });
     }
     if (!/^\S+@\S+\.\S+$/.test(email)) return NextResponse.json({ error: "Geçerli bir e-posta adresi girin." }, { status: 400 });
-    if (!/^[a-z0-9_\.\-]{3,30}$/.test(username)) return NextResponse.json({ error: "Kullanıcı adı 3-30 karakter olmalı ve yalnızca küçük harf, rakam, nokta, alt çizgi veya tire içermelidir." }, { status: 400 });
+    if (!isValidUsername(username)) return NextResponse.json({ error: USERNAME_VALIDATION_MESSAGE }, { status: 400 });
     if (!isValidPassword(password)) return NextResponse.json({ error: PASSWORD_MIN_LENGTH_MESSAGE }, { status: 400 });
     if (!passwordsMatch(password, passwordConfirmation)) return NextResponse.json({ error: "Şifreler eşleşmiyor." }, { status: 400 });
 

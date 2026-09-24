@@ -595,13 +595,15 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
 .nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  margin-left: auto;
 }
 
 .nav-action-links {
   display: flex;
   align-items: center;
   gap: 8px;
+  margin-right: 2px;
 }
 
 .nav-icon-button {
@@ -666,6 +668,77 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
   color: rgba(255, 255, 255, 0.75);
   font-size: 0.8rem;
   font-weight: 600;
+}
+
+.nav-user-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.nav-user-name {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 34px;
+  max-width: 92px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  vertical-align: middle;
+  transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+}
+
+.nav-user-name:hover,
+.nav-user-name:focus-visible {
+  background: rgba(125, 211, 252, 0.12);
+  border-color: rgba(125, 211, 252, 0.4);
+  color: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.nav-logout-desktop {
+  display: inline-flex;
+  align-items: center;
+}
+
+.nav-logout-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  min-height: 34px;
+  max-width: 34px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: clip;
+  flex-shrink: 0;
+}
+
+.nav-logout-button:hover,
+.nav-logout-button:focus-visible {
+  background: rgba(125, 211, 252, 0.12);
+  border-color: rgba(125, 211, 252, 0.4);
+  color: #dbeafe;
 }
 
 /* Only one logout control should render per breakpoint; the mobile copy lives in the open menu. */
@@ -1520,9 +1593,17 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
     padding: 7px 10px;
     font-size: 0.68rem;
     line-height: 1.1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .nav-logout-button {
+    max-width: 68px;
+    min-height: 34px;
+    padding-inline: 8px;
+    flex-direction: column;
+    gap: 2px;
   }
 
   .nav-user-mobile {
@@ -1536,6 +1617,11 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
   .nav-actions {
     gap: 6px;
     min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .nav-user-name {
+    max-width: 72px;
   }
 
   .nav-action-links {
@@ -4160,6 +4246,93 @@ body:has(.hero-section) .navbar .nav-inner.menu-open .nav-link,
 .dashboard-error p {
   color: var(--color-muted);
   font-size: 0.82rem;
+}
+
+.my-turn-loader-shell {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, 0.92);
+  animation: my-turn-loader-fade-in 180ms ease-out;
+}
+
+.my-turn-loader {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(58px, 8vw, 72px);
+  height: clamp(58px, 8vw, 72px);
+}
+
+.my-turn-loader-ring {
+  position: absolute;
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: rgba(96, 165, 250, 0.12);
+  border: 1.5px solid rgba(96, 165, 250, 0.22);
+  box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.08), 0 0 18px rgba(96, 165, 250, 0.08);
+  opacity: 0;
+  transform: scale(0.2);
+}
+
+.my-turn-loader-ring-a {
+  background: rgba(96, 165, 250, 0.18);
+  animation: my-turn-pulse 1.5s ease-out infinite;
+}
+
+.my-turn-loader-ring-b {
+  background: rgba(96, 165, 250, 0.14);
+  animation: my-turn-pulse 1.5s ease-out infinite 0.4s;
+}
+
+.my-turn-loader-ring-c {
+  background: rgba(147, 197, 253, 0.12);
+  animation: my-turn-pulse 1.5s ease-out infinite 0.8s;
+}
+
+@keyframes my-turn-pulse {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.08), 0 0 0 rgba(96, 165, 250, 0);
+  }
+  18% {
+    opacity: 0.9;
+  }
+  55% {
+    opacity: 0.55;
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0.12), 0 0 20px rgba(96, 165, 250, 0.1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+    box-shadow: inset 0 0 0 1px rgba(147, 197, 253, 0), 0 0 0 rgba(96, 165, 250, 0);
+  }
+}
+
+@keyframes my-turn-loader-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .my-turn-loader-shell {
+    animation: none;
+  }
+
+  .my-turn-loader-ring {
+    animation: none;
+    opacity: 0.7;
+    transform: scale(0.5);
+  }
 }
 
 .dashboard-error h1 {

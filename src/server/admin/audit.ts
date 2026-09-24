@@ -2,6 +2,7 @@ import "server-only";
 
 import { AdminActionType, Prisma } from "@prisma/client";
 import { prisma } from "../../lib/prisma";
+import { isValidUsername, USERNAME_VALIDATION_MESSAGE } from "../../lib/auth-validation";
 import { hashPassword, requireSuperAdmin } from "../auth/auth";
 
 export const SUPER_ADMIN_PAGE_SIZE = 25;
@@ -31,11 +32,12 @@ export async function revokeSanctionAsSuperAdmin(strikeId: string) {
 
 export async function createManagedAdmin(input: { username: string; email: string; password: string }) {
   const owner = await requireSuperAdmin();
-  if (!/^[a-z0-9_.-]{3,30}$/.test(input.username) || input.password.length < 8) throw new Error("INVALID_ADMIN");
-  const existing = await prisma.user.findFirst({ where: { OR: [{ username: input.username }, { email: input.email }] }, select: { id: true } });
+  const normalizedUsername = input.username.trim();
+  if (!isValidUsername(normalizedUsername) || input.password.length < 8) throw new Error("INVALID_ADMIN");
+  const existing = await prisma.user.findFirst({ where: { OR: [{ username: normalizedUsername }, { email: input.email }] }, select: { id: true } });
   if (existing) throw new Error("ADMIN_EXISTS");
   const role = await prisma.role.upsert({ where: { name: "ADMIN" }, update: {}, create: { name: "ADMIN", description: "Yönetici" } });
-  const admin = await prisma.user.create({ data: { username: input.username, email: input.email, passwordHash: await hashPassword(input.password), userRoles: { create: { roleId: role.id } } }, select: { id: true, username: true } });
+  const admin = await prisma.user.create({ data: { username: normalizedUsername, email: input.email, passwordHash: await hashPassword(input.password), userRoles: { create: { roleId: role.id } } }, select: { id: true, username: true } });
   await prisma.adminActionLog.create({ data: { adminId: owner.id, action: "ADMIN_CREATED", targetUserId: admin.id, reason: "Super Admin tarafından oluşturuldu" } });
   return admin;
 }
