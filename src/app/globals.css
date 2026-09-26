@@ -13,6 +13,23 @@
 .auth-form input { width: 100%; min-width: 0; padding: 12px 13px; border: 1px solid #cbd5e1; border-radius: 7px; color: #0f172a; background: #fff; font: inherit; }
 .auth-form input:focus { outline: 2px solid #93c5fd; border-color: #2563eb; }
 .auth-form-full { grid-column: 1 / -1; }
+.auth-card .button-secondary {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #0f172a;
+  box-shadow: none;
+}
+.auth-card .button-secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  box-shadow: none;
+  transform: none;
+}
+.auth-card .button-secondary:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 .auth-consent { display: flex !important; flex-direction: row !important; align-items: start; gap: 9px !important; font-weight: 500 !important; }
 .auth-consent input { width: auto; margin-top: 3px; }
 .auth-consent a { color: #2563eb; font-weight: 700; }
