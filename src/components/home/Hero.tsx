@@ -17,6 +17,19 @@ export async function Hero() {
     prisma.message.count(),
   ]);
   const categoryNames = Object.fromEntries(categories.map((item) => [item.slug, item.name]));
+  const tickerItems = [
+    { label: "TALEBİNİ OLUŞTUR", tone: "light" },
+    { label: "TEKLİFLERİ AL", tone: "accent" },
+    { label: "TEKLİFLERİ KARŞILAŞTIR", tone: "light" },
+    { label: "SANA UYGUN OLANI SEÇ", tone: "accent" },
+    { label: "ZAMAN KAYBETME", tone: "light" },
+    { label: "TEKLİFLER SANA GELSİN", tone: "accent" },
+    { label: "İHTİYACINI YAZ", tone: "light" },
+    { label: "FARKLI TEKLİFLERİ GÖR", tone: "accent" },
+    { label: "KARARINI VER", tone: "light" },
+    { label: "TALEBİNİ OLUŞTUR", tone: "light" },
+  ];
+  const repeatedTickerItems = [...tickerItems, ...tickerItems];
 
   return (
     <section className="hero-section" id="top">
@@ -70,6 +83,16 @@ export async function Hero() {
           </div>
         </div>
       </Container>
+      <div className="hero-ticker" aria-label="My Turn iş akışı">
+        <div className="hero-ticker-track">
+          {repeatedTickerItems.map((item, index) => (
+            <span key={`${item.label}-${index}`} className={`hero-ticker-item hero-ticker-item-${item.tone}`}>
+              {item.label}
+              {index !== repeatedTickerItems.length - 1 ? <span className="hero-ticker-separator" aria-hidden="true">→</span> : null}
+            </span>
+          ))}
+        </div>
+      </div>
     </section>
   );
 }

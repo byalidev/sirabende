@@ -2,10 +2,10 @@ import { Container } from "../layout/Container";
 import { SectionHeading } from "../ui/SectionHeading";
 
 const steps = [
-  { number: "01", icon: "⌁", title: "Ne aradığını söyle.", copy: "İhtiyacını, bütçeni ve bulunduğun yeri birkaç cümleyle anlat." },
-  { number: "02", icon: "↗", title: "Satıcılar sana teklif versin.", copy: "Talebin doğru satıcıların önüne çıksın, seçenekler sana gelsin." },
-  { number: "03", icon: "≋", title: "Teklifleri karşılaştır.", copy: "Fiyat, koşul ve teslimat detaylarını tek bakışta değerlendir." },
-  { number: "04", icon: "✓", title: "Sana uygun olanı seç.", copy: "Karar senin. En iyi seçeneği bulduğunda bir adım öndesin." },
+  { number: "01", icon: "✦", title: "İhtiyacını net anlat.", copy: "Ürün, bütçe, lokasyon ve koşullarını kısa bir talepte açıkça belirt." },
+  { number: "02", icon: "↗", title: "Uygun teklifler sana gelsin.", copy: "Talebin ilgili kişiler tarafından hızlıca görsün; gereksiz arama süreci yaşanmasın." },
+  { number: "03", icon: "≋", title: "Fiyat ve koşulları kıyasla.", copy: "Teklifleri tek ekranda karşılaştır, en güçlü seçenekleri kolayca filtrele." },
+  { number: "04", icon: "✓", title: "En doğru seçimi yap.", copy: "Sana en uygun olanı seç, güvenle ilerle ve anında iletişime geç." },
 ];
 
 export function HowItWorks() {
@@ -14,7 +14,7 @@ export function HowItWorks() {
       <Container>
         <div className="section-heading-row">
           <SectionHeading eyebrow="Nasıl çalışır?" title="Arama sürecini tersine çeviriyoruz." />
-          <p className="section-copy">Klasik ilan sitelerinde saatlerce aramak yerine, ihtiyacını doğru kişilere ulaştırırsın.</p>
+          <p className="section-copy">My Turn’da senin ihtiyacın öne çıkar; seçenekler seni bulur.</p>
         </div>
         <div className="steps-grid">
           {steps.map((step) => (

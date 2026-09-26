@@ -11,8 +11,7 @@ export function MessageComposer({ conversationId, hasModerationWarning = false }
   const [error, setError] = useState("");
   const [sending, setSending] = useState(false);
 
-  const sendMessage = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitMessage = async () => {
     if (!content.trim() || sending) return;
     setSending(true);
     setError("");
@@ -30,5 +29,38 @@ export function MessageComposer({ conversationId, hasModerationWarning = false }
     }
   };
 
-  return <form className="message-composer" onSubmit={sendMessage}><MessageSafetyNotice hasModerationWarning={hasModerationWarning} /><textarea aria-label="Mesaj" value={content} onChange={(event) => setContent(event.target.value)} placeholder="Mesajını yaz..." maxLength={2000} /><div className="message-composer-footer"><span>{content.length}/2.000</span><button className="button-primary" type="submit" disabled={sending || !content.trim()}>{sending ? "Gönderiliyor..." : "Gönder ↗"}</button></div>{error ? <p className="form-error" role="alert">{error}</p> : null}</form>;
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submitMessage();
+  };
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      void submitMessage();
+    }
+  };
+
+  return (
+    <form className="message-composer" onSubmit={handleSubmit}>
+      <MessageSafetyNotice hasModerationWarning={hasModerationWarning} />
+      <div className="message-composer-box">
+        <textarea
+          aria-label="Mesaj"
+          value={content}
+          onChange={(event) => setContent(event.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Mesajını yaz..."
+          maxLength={2000}
+        />
+        <div className="message-composer-footer">
+          <span>{content.length}/2.000</span>
+          <button className="button-primary" type="submit" disabled={sending || !content.trim()}>
+            {sending ? "Gönderiliyor..." : "Gönder"}
+          </button>
+        </div>
+      </div>
+      {error ? <p className="form-error" role="alert">{error}</p> : null}
+    </form>
+  );
 }

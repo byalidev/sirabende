@@ -2,9 +2,9 @@ import { Container } from "../layout/Container";
 import { SectionHeading } from "../ui/SectionHeading";
 
 const points = [
-  { number: "01", title: "Satıcılar seni aramaz. Senin talebine ulaşır.", copy: "İhtiyacın net olduğunda, yalnızca gerçekten yardımcı olabilecek kişiler cevap verir." },
-  { number: "02", title: "Fiyatları karşılaştır.", copy: "Tek bir seçeneğe bağlı kalmadan, farklı teklifleri aynı yerde değerlendir." },
-  { number: "03", title: "Karar senin olsun.", copy: "Bütçene, koşullarına ve beklentine uyan satıcıyı kendi zamanında seç." },
+  { number: "01", title: "İhtiyaç odaklı başlar.", copy: "Aradığın şeyi değil, hangi problemi çözeceğini anlatırsın; platform bunu doğru kişilere iletir." },
+  { number: "02", title: "Hızla karşılaştırılır.", copy: "Fiyat, teslimat ve koşullar tek ekranda görünür; karar vermek çok daha kolay olur." },
+  { number: "03", title: "Sana en uygun olan seçilir.", copy: "Bütçene, konumuna ve beklediğin kaliteye göre en doğru teklifler ön plana çıkar." },
 ];
 
 export function TrustSection() {
@@ -12,7 +12,7 @@ export function TrustSection() {
     <section className="section-pad trust-section">
       <Container>
         <div className="trust-grid">
-          <SectionHeading eyebrow="Neden My Turn?" title="Daha az arama. Daha çok seçenek." copy="My Turn, alışverişi satıcının vitrininden değil, senin ihtiyacından başlatır." />
+          <SectionHeading eyebrow="Neden My Turn?" title="Daha az arama. Daha çok uygun seçenek." copy="İlanlar yerine ihtiyacın merkezde olur; doğru teklifler sana gelir." />
           <div className="trust-points">
             {points.map((point) => (
               <article className="trust-point" key={point.number}>

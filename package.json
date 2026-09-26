@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --require ts-node/register/transpile-only --test src/lib/auth-validation.test.ts src/server/ai/validation.test.ts src/server/ai/heuristic.test.ts src/server/matching/scoring.test.ts src/server/strikes/repository.test.ts src/server/moderation/message-engine.test.ts",
+    "test": "node --require ts-node/register/transpile-only --test src/lib/auth-validation.test.ts src/lib/messaging-format.test.ts src/server/ai/validation.test.ts src/server/ai/heuristic.test.ts src/server/matching/scoring.test.ts src/server/strikes/repository.test.ts src/server/moderation/message-engine.test.ts",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
     "prisma:format": "prisma format",
