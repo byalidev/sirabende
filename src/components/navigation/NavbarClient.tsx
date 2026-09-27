@@ -78,7 +78,7 @@ export function NavbarClient({ user }: { user: NavbarUser | null }) {
               </>
             ) : (
               <>
-                <a className="nav-login" href="/giris">Giriş Yap</a>
+                <a className="nav-login" href="/giris?next=%2Ftalepler">Giriş Yap</a>
                 <Button href="/kayit" variant="primary">Üye Ol</Button>
               </>
             )}
